@@ -9,6 +9,7 @@ import { useMap } from './composables/useMap'
 import { useCables } from './composables/useCables'
 import { useNoeuds } from './composables/useNoeuds'
 import { useInspection } from './composables/useInspection'
+import { useReseauStore } from './stores/reseau'
 
 import LegendeMap from './components/map/LegendeMap.vue'
 import InspectionCable from './components/map/InspectionCable.vue'
@@ -21,11 +22,23 @@ const deconnecter = () => { AuthService.logout(); router.push('/login') }
 
 // ===== COMPOSABLES =====
 const { fenetres, demarrerDrag } = useDrag()
-const { map, utilisateurNom, initMap, dessinerFrontiere, chargerInfrastructure } = useMap()
+const { map, utilisateurNom, initMap, dessinerFrontiere } = useMap()
+const store = useReseauStore()
 
 const cables = useCables(map)
 const noeuds = useNoeuds(map)
 const inspection = useInspection()
+
+const chargerInfrastructure = async () => {
+  await store.chargerInfrastructure()
+  if (store.geoJsonCables) cables.dessinerCables(store.geoJsonCables)
+  if (store.geoJsonNoeuds) noeuds.dessinerNoeuds(store.geoJsonNoeuds)
+}
+
+const rechargerNoeuds = async () => {
+  await store.chargerNoeuds()
+  if (store.geoJsonNoeuds) noeuds.dessinerNoeuds(store.geoJsonNoeuds)
+}
 
 // ===== MONITORING =====
 const afficherDashboard = ref(false)
@@ -50,7 +63,7 @@ const onAjouterManchon = (noeudId: string) => alert(`Ajouter manchon dans le nœ
 onMounted(async () => {
   await initMap()
   dessinerFrontiere()
-  chargerInfrastructure(cables.dessinerCables, noeuds.dessinerNoeuds)
+  chargerInfrastructure()
   await noeuds.chargerCentres()
 })
 
@@ -156,7 +169,7 @@ onUnmounted(() => { map.value?.remove() })
         :centres-disponibles="noeuds.centresDisponibles.value"
         @close="noeuds.fermerPanneau"
         @start-drag="demarrerDrag"
-        @save="noeuds.sauvegarderNouveauNoeud(() => chargerInfrastructure(cables.dessinerCables, noeuds.dessinerNoeuds))"
+        @save="noeuds.sauvegarderNouveauNoeud(rechargerNoeuds)"
       />
 
       <!-- FORMULAIRE CÂBLE -->
@@ -283,7 +296,7 @@ onUnmounted(() => { map.value?.remove() })
                     class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100">
               Annuler
             </button>
-            <button @click="cables.sauvegarderNouveauCable(() => chargerInfrastructure(cables.dessinerCables, noeuds.dessinerNoeuds))"
+            <button @click="cables.sauvegarderNouveauCable(chargerInfrastructure)"
                     class="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700 shadow-sm">
               Créer Câble
             </button>

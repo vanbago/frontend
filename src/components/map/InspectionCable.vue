@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CableInspection, Fibre, NormeCouleurs } from '../../types/map'
+import type { CableInspection, Fibre } from '../../types/map'
 import { DICTIONNAIRE_COULEURS, getStyleFibre } from '../../composables/useCables'
 import type { NomFenetre } from '../../composables/useDrag'
 
