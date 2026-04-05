@@ -91,8 +91,64 @@ interface EquipementResum {
   marque: string | null
 }
 
+// Résumé d'un manchon installé dans une chambre
+interface ManchonResum {
+  id: string
+  nom_reference: string | null
+  type_manchon: string
+  type_label: string
+  etat: string | null
+  capacite_fibres: number | null
+}
 
-// Réponse de l'API /api/noeuds/{id}/ — CENTRE, BTS, CLIENT uniquement
+// =====================================================
+// INTERFACES MATRICE DE SOUDURES
+// =====================================================
+
+// Fibre avec info de soudure
+interface FibreMatrice {
+  fibre_id: string
+  numero_tube: number
+  numero_fibre: number
+  code_couleur_hex: string | null
+  etat: string | null
+  soudure_id: string | null
+  soudure_statut: string | null
+  fibre_connectee_id: string | null
+  fibre_connectee_cable: string | null
+  fibre_connectee_tube: number | null
+  fibre_connectee_numero: number | null
+}
+
+// Câble dans la matrice
+interface CableMatrice {
+  cable_id: string
+  cable_url: string
+  cable_nom: string
+  capacite: number
+  fibres: FibreMatrice[]
+}
+
+// Soudure
+interface SoudureMatrice {
+  id: string
+  fibre_entrante_id: string
+  fibre_sortante_id: string
+  statut: string
+}
+
+// Contenu manchon
+interface ContenuMatrice {
+  cables: CableMatrice[]
+  soudures: SoudureMatrice[]
+  stats: {
+    total_fibres: number
+    fibres_soudees: number
+    fibres_libres: number
+  }
+}
+
+// Réponse de l'API /api/noeuds/{id}/inspecter/
 interface NoeudCentreInspection {
   id: string
   url: string
@@ -106,6 +162,7 @@ interface NoeudCentreInspection {
     boitiers: BoitierResum[]
     cables: CableResum[]
     equipements: EquipementResum[]
+    manchons?: ManchonResum[]
   }
 }
 
@@ -117,7 +174,7 @@ interface NoeudCentreInspection {
 // URl DE TON API (À METTRE DANS .ENV POUR PLUS DE FLEXIBILITÉ)
 const BASE_URL = AuthService.getBaseURL() // Récupère l'URL de base depuis le service d'authentification
 
-//  DÉCLARATION DE LA CARTE
+// DÉCLARATION DE LA CARTE
 const map = shallowRef<L.Map | null>(null)
 
 // GESTIONS DES CALQUES (Nœuds, Câbles, Frontières)
@@ -127,6 +184,8 @@ let calqueCables: L.GeoJSON | null = null
 
 // GESTION DU PANNEAU LATÉRAL (Création de Nœud)
 const panneauOuvert = ref(false)
+const panneauCableOuvert = ref(false)
+
 
 
 // FENETRE DU MONITORING
@@ -145,6 +204,51 @@ const afficherInspection = ref(false)
 const cableEnInspection = ref<CableInspection | null>(null)
 const chargementInspection = ref(false)
 
+// FENETRE D'INSPECTION DES NOEUDS
+const afficherInspectionNoeud = ref(false)
+const noeudEnInspection = ref<NoeudCentreInspection | null>(null)
+const chargementInspectionNoeud = ref(false)
+
+// FENETRE MATRICE DE SOUDURES
+const afficherMatrice = ref(false)
+const manchonEnMatrice = ref<ContenuMatrice | null>(null)
+const manchonNomEnMatrice = ref<string | null>(null)
+const manchonIdEnMatrice = ref<string | null>(null)
+const chargementMatrice = ref(false)
+
+//FENETRE DE CREATION DES NOEUDS OU CABLES
+const menuCreationOuvert = ref(false)
+
+// liste des noeuds disponibles pour les dropdowns
+const noeudsDisponibles = ref<{ id: string, nom: string, type: string, coords: [number, number] | null }[]>([])
+
+// liste des normes disponibles
+const normesDisponibles = ref<{ id: string, code: string }[]>([])
+
+// Centre de l'utilisateur connecté (rempli automatiquement depuis /me/)
+const centreUtilisateurNom = ref<string | null>(null)
+const utilisateurNom = ref<string | null>(null)
+
+
+
+
+// Couleurs standard télécom (ITU-T) pour les fibres optiques
+const COULEURS_FIBRES: Record<string, string> = {
+  BLEU:     '#1d4ed8',
+  ORANGE:   '#ea580c',
+  VERT:     '#16a34a',
+  MARRON:   '#92400e',
+  ARDOISE:  '#64748b',
+  BLANC:    '#f8fafc',
+  ROUGE:    '#dc2626',
+  NOIR:     '#171717',
+  JAUNE:    '#ca8a04',
+  VIOLET:   '#7c3aed',
+  ROSE:     '#db2777',
+  CYAN:     '#0891b2',
+  INCONNUE: '#9ca3af',
+}
+
 
 //================================================
 //  MOTEUR DE FENÊTRES FLOTTANTES (DRAG & DROP)
@@ -156,11 +260,15 @@ const fenetres = reactive({
   creation: { x: window.innerWidth > 800 ? window.innerWidth - 360 : 20, y: 80 },
   inspection: { x: 60, y: 100 },
   inspectionNoeud: { x: 60, y: 100 },
+  matrice: { x: 100, y: 80 },
+  creationCable: { x: window.innerWidth > 800 ? window.innerWidth - 380 : 20, y: 80 }  
 })
 
-let dragInfo = { actif: false, fenetre: '' as 'monitoring' | 'creation' | 'inspection' | 'inspectionNoeud', startX: 0, startY: 0, initX: 0, initY: 0 }
+type NomFenetre = 'monitoring' | 'creation' | 'inspection' | 'inspectionNoeud' | 'matrice' | 'creationCable'
 
-const demarrerDrag = (e: MouseEvent, nomFenetre: 'monitoring' | 'creation' | 'inspection' | 'inspectionNoeud') => {
+let dragInfo = { actif: false, fenetre: '' as NomFenetre, startX: 0, startY: 0, initX: 0, initY: 0 }
+
+const demarrerDrag = (e: MouseEvent, nomFenetre: NomFenetre) => {
   dragInfo.actif = true
   dragInfo.fenetre = nomFenetre
   dragInfo.startX = e.clientX
@@ -188,8 +296,6 @@ const arreterDrag = () => {
   document.removeEventListener('mouseup', arreterDrag)
 }
 
-// dashboard monitoring
-const fermerDashboard = () => afficherDashboard.value = false
 
 
 
@@ -248,7 +354,7 @@ const dessinerCables = (donneesGeoJson: any) => {
   if (calqueCables) carte.removeLayer(calqueCables)
 
   calqueCables = L.geoJSON(donneesGeoJson, {
-    style: (feature) => {
+    style: (_feature) => {
       return {
         color: '#3b82f6', // Bleu
         weight: 4,
@@ -381,24 +487,142 @@ const fibresParTube = computed(() => {
   return groupes
 })
 
-// On aligne les champs EXACTEMENT sur ton modèle Django
+
+//============================================
+// GESTION DES FORMULAIRES DE CREATION
+//=============================================
+
+
+const formulaireCable = reactive({
+  nom_code: '',
+  noeud_depart_id: '',
+  noeud_fin_id: '',
+  capacite_fibres: 96,
+  norme_id: '',
+  technologie_transport: 'FO',
+  longueur_reelle_metres: '',
+  statut_physique: 'EN_SERVICE',
+  centre_proprietaire_id: ''
+})
+
 const formulaireNoeud = reactive({
   nom_code: '',
   type_noeud: 'MANCHON', // La valeur par défaut de ton backend
   latitude: '',
   longitude: '',
   statut_operationnel: 'EN SERVICE', // En service, Projet, Maintenance...
-  statut_energie: 'PASSIF'       // Actif (Alimenté) ou Passif
+  statut_energie: 'PASSIF',       // Actif (Alimenté) ou Passif
+  est_frontiere: false,
+  centre_partenaire_id: ''
 })
 
 const ouvrirPanneau = () => panneauOuvert.value = true
+
+// Ouvrir le menu de création
+const ouvrirMenuCreation = () => {
+  menuCreationOuvert.value = !menuCreationOuvert.value
+}
+
+// Choisir le type de création
+const choisirCreation = (type: 'noeud' | 'cable') => {
+  menuCreationOuvert.value = false
+  if (type === 'noeud') {
+    ouvrirPanneau()
+  } else if (type === 'cable') {
+    ouvrirPanneauCable()
+  }
+}
+
+// Ouvrir le panneau câble
+const ouvrirPanneauCable = async () => {
+  await Promise.all([chargerNoeuds(), chargerNormes()])
+
+  // Récupérer le centre de l'utilisateur connecté
+  const rep = await AuthService.apiCall(`${BASE_URL}/api/utilisateurs/me/`)
+  if (rep.ok) {
+    const moi = await rep.json()
+    console.log('👤 Profil utilisateur /me/ :', moi)
+    formulaireCable.centre_proprietaire_id = moi.centre_id ?? ''
+    centreUtilisateurNom.value = moi.centre_nom ?? null
+  } else {
+    console.error('❌ /me/ a retourné :', rep.status, await rep.text())
+  }
+
+  panneauCableOuvert.value = true
+}
+
+// Fermer le panneau câble
+const fermerPanneauCable = () => {
+  panneauCableOuvert.value = false
+  formulaireCable.nom_code = ''
+  formulaireCable.noeud_depart_id = ''
+  formulaireCable.noeud_fin_id = ''
+  formulaireCable.capacite_fibres = 96
+  formulaireCable.norme_id = ''
+  formulaireCable.technologie_transport = 'FO'
+  formulaireCable.longueur_reelle_metres = ''
+  formulaireCable.statut_physique = 'EN_SERVICE'
+  formulaireCable.centre_proprietaire_id = ''
+}
 
 const fermerPanneau = () => {
   panneauOuvert.value = false
   formulaireNoeud.nom_code = ''
   formulaireNoeud.latitude = ''
   formulaireNoeud.longitude = ''
+  formulaireNoeud.est_frontiere = false
+  formulaireNoeud.centre_partenaire_id = ''
 }
+
+
+// Charger les nœuds pour les dropdowns
+const chargerNoeuds = async () => {
+  try {
+    const response = await AuthService.apiCall(`${BASE_URL}/api/noeuds/`)
+    if (!response.ok) throw new Error(`Erreur ${response.status}`)
+    
+    const data = await response.json()
+    let noeuds = []
+    
+    if (data.results?.features) {
+      noeuds = data.results.features
+    } else if (data.features) {
+      noeuds = data.features
+    }
+    
+    noeudsDisponibles.value = noeuds.map((n: any) => ({
+      id: n.id || n.properties?.id,
+      nom: n.properties?.nom_code || 'Nœud sans nom',
+      type: n.properties?.type_noeud || '',
+      coords: n.geometry?.coordinates ?? null  // [lng, lat]
+    }))
+    
+    console.log("Nœuds chargés:", noeudsDisponibles.value)
+  } catch (erreur) {
+    console.error("❌ Échec chargement nœuds:", erreur)
+  }
+}
+
+// Charger les normes de couleurs
+const chargerNormes = async () => {
+  try {
+    const response = await AuthService.apiCall(`${BASE_URL}/api/normes/`)
+    if (!response.ok) throw new Error(`Erreur ${response.status}`)
+    
+    const data = await response.json()
+    
+    if (data.results) {
+      normesDisponibles.value = data.results.map((n: any) => ({ id: n.id, code: n.code }))
+    } else if (Array.isArray(data)) {
+      normesDisponibles.value = data.map((n: any) => ({ id: n.id, code: n.code }))
+    }
+    
+    console.log("Normes chargées:", normesDisponibles.value)
+  } catch (erreur) {
+    console.error("❌ Échec chargement normes:", erreur)
+  }
+}
+
 
 // Le tireur d'élite (Envoi vers Django)
 const sauvegarderNouveauNoeud = async () => {
@@ -409,20 +633,23 @@ const sauvegarderNouveauNoeud = async () => {
     const lng = parseFloat(formulaireNoeud.longitude)
 
     // Construction du Payload au standard GeoDjango
-    const payload = {
+    const payload: Record<string, any> = {
       nom_code: formulaireNoeud.nom_code,
       type_noeud: formulaireNoeud.type_noeud,
       statut_operationnel: formulaireNoeud.statut_operationnel,
       statut_energie: formulaireNoeud.statut_energie,
+      est_frontiere: formulaireNoeud.est_frontiere,
 
-      // La magie GeoJSON : Un Point géographique propre
+      // GeoJSON : longitude en premier, latitude en second
       geometrie: {
         type: "Point",
-        coordinates: [
-          lng, //  LONGITUDE EN PREMIER !
-          lat   //LATITUDE EN SECOND !
-        ]
+        coordinates: [lng, lat]
       }
+    }
+
+    // Ajouter le centre partenaire seulement si c'est une frontière
+    if (formulaireNoeud.est_frontiere && formulaireNoeud.centre_partenaire_id) {
+      payload.centre_partenaire_id = formulaireNoeud.centre_partenaire_id
     }
 
     // Appel à ton API via ton garde du corps JWT
@@ -444,8 +671,8 @@ const sauvegarderNouveauNoeud = async () => {
     alert(`L'équipement ${formulaireNoeud.nom_code} a été ancré sur le réseau !`)
     fermerPanneau()
 
-    // on dessine et on Zomm imediatement sur la zone
 
+    // on dessine et on Zomm imediatement sur la zone
     if (map.value && !Number.isNaN(lat) && !Number.isNaN(lng)) {
       const nouveauMarqueur = L.circleMarker([lat, lng], {
         color: '#ffffff',
@@ -475,6 +702,104 @@ const sauvegarderNouveauNoeud = async () => {
   } catch (erreur) {
     console.error("❌ Échec de la sauvegarde :", erreur)
     alert("Erreur lors de la création du nœud. Vérifiez la console F12.")
+  }
+}
+
+
+// Sauvegarder le nouveau câble
+// Sauvegarder le nouveau câble
+const sauvegarderNouveauCable = async () => {
+  // =====================================================
+  // VALIDATION OBLIGATOIRE
+  // =====================================================
+
+  if (!formulaireCable.nom_code.trim()) {
+    alert("⚠️ Veuillez saisir un nom pour le câble")
+    return
+  }
+
+  if (!formulaireCable.noeud_depart_id) {
+    alert("⚠️ Veuillez sélectionner un nœud de départ")
+    return
+  }
+
+  if (!formulaireCable.noeud_fin_id) {
+    alert("⚠️ Veuillez sélectionner un nœud de fin")
+    return
+  }
+
+  if (formulaireCable.noeud_depart_id === formulaireCable.noeud_fin_id) {
+    alert("⚠️ Le nœud de départ et de fin doivent être différents")
+    return
+  }
+
+  if (!formulaireCable.norme_id) {
+    alert("⚠️ Veuillez sélectionner une norme de couleurs")
+    return
+  }
+
+  if (!formulaireCable.centre_proprietaire_id) {
+    alert("⚠️ Veuillez sélectionner un centre propriétaire")
+    return
+  }
+
+  // =====================================================
+  // ENVOI À L'API
+  // =====================================================
+
+  try {
+    console.log("Envoi du câble à Django...")
+
+    // Générer la géométrie LineString automatiquement depuis les coordonnées des nœuds
+    const noeudDepart = noeudsDisponibles.value.find(n => n.id === formulaireCable.noeud_depart_id)
+    const noeudFin = noeudsDisponibles.value.find(n => n.id === formulaireCable.noeud_fin_id)
+
+    console.log('📍 noeudDepart:', noeudDepart)
+    console.log('📍 noeudFin:', noeudFin)
+
+    const geometrie = noeudDepart?.coords && noeudFin?.coords
+      ? { type: 'LineString', coordinates: [noeudDepart.coords, noeudFin.coords] }
+      : null
+
+    console.log('📐 geometrie générée:', geometrie)
+
+    const payload: Record<string, any> = {
+      nom_code: formulaireCable.nom_code,
+      noeud_depart_id: formulaireCable.noeud_depart_id,
+      noeud_fin_id: formulaireCable.noeud_fin_id,
+      capacite_fibres: formulaireCable.capacite_fibres,
+      norme_id: formulaireCable.norme_id,
+      technologie_transport: formulaireCable.technologie_transport,
+      statut_physique: formulaireCable.statut_physique,
+      centre_proprietaire_id: formulaireCable.centre_proprietaire_id,
+      longueur_reelle_metres: formulaireCable.longueur_reelle_metres
+        ? parseFloat(formulaireCable.longueur_reelle_metres)
+        : null
+    }
+
+    if (geometrie) payload.geometrie = geometrie
+
+    const response = await AuthService.apiCall(`${BASE_URL}/api/cables/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      const erreur = await response.json()
+      throw new Error(JSON.stringify(erreur))
+    }
+
+    console.log("✅ Câble créé avec succès")
+    alert("Câble créé avec succès !")
+    fermerPanneauCable()
+
+    // Recharger l'infrastructure
+    await chargerInfrastructure()
+
+  } catch (erreur) {
+    console.error("❌ Échec de la création du câble:", erreur)
+    alert("Erreur lors de la création du câble. Vérifiez la console F12.")
   }
 }
 
@@ -587,9 +912,7 @@ const getCouleurTube = (numeroTube: number): { nom: string, style: { bg: string,
 
 
 // Variables réactives
-const afficherInspectionNoeud = ref(false)
-const noeudEnInspection = ref<NoeudCentreInspection | null>(null)
-const chargementInspectionNoeud = ref(false)
+
 
 // Fermer la fenêtre
 const fermerInspectionNoeud = () => {
@@ -623,8 +946,147 @@ const inspecterNoeud = async (noeudId: string) => {
 
 const installerManchon = async (noeudId: string) => {
   // TODO: Ouvrir un formulaire de création de manchon
-  // Pour l'instant, juste un placeholder
   alert(`Fonctionnalité à venir : Installer manchon dans le nœud ${noeudId}`)
+}
+
+// =====================================================
+// GESTION DE LA MATRICE DE SOUDURES
+// =====================================================
+
+// Filtres
+const filtreCableSource = ref('')
+const filtreEtat = ref('')
+
+// Mode soudure (clic-clic)
+const modeSoudure = reactive({
+  actif: false,
+  cableSource: null as CableMatrice | null,
+  fibreSource: null as FibreMatrice | null
+})
+
+// Filtrer les fibres selon les critères
+const filtrerFibres = (cable: CableMatrice) => {
+  let fibres = cable.fibres
+  if (filtreCableSource.value && cable.cable_id !== filtreCableSource.value) return []
+  if (filtreEtat.value === 'soudees') fibres = fibres.filter(f => f.soudure_id)
+  else if (filtreEtat.value === 'libres') fibres = fibres.filter(f => !f.soudure_id)
+  return fibres
+}
+
+// Sélectionner une fibre (mode clic-clic)
+const selectionnerFibre = (cable: CableMatrice, fibre: FibreMatrice) => {
+  if (!modeSoudure.actif) {
+    modeSoudure.actif = true
+    modeSoudure.cableSource = cable
+    modeSoudure.fibreSource = fibre
+    return
+  }
+  if (modeSoudure.fibreSource && fibre.fibre_id !== modeSoudure.fibreSource.fibre_id) {
+    creerSoudure(modeSoudure.fibreSource.fibre_id, fibre.fibre_id)
+  }
+}
+
+// Annuler le mode soudure
+const annulerSoudure = () => {
+  modeSoudure.actif = false
+  modeSoudure.cableSource = null
+  modeSoudure.fibreSource = null
+}
+
+// Créer une soudure via API
+const creerSoudure = async (fibreEntranteId: string, fibreSortanteId: string) => {
+  try {
+    const response = await AuthService.apiCall(`${BASE_URL}/api/soudures/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fibre_entrante_id: fibreEntranteId,
+        fibre_sortante_id: fibreSortanteId,
+        statut: 'OK'
+      })
+    })
+    if (!response.ok) throw new Error(`Erreur ${response.status}`)
+    annulerSoudure()
+    if (manchonIdEnMatrice.value) await voirSoudures(manchonIdEnMatrice.value, manchonNomEnMatrice.value ?? undefined)
+    console.log('✅ Soudure créée')
+  } catch (erreur) {
+    console.error('❌ Échec création soudure:', erreur)
+    alert('Impossible de créer la soudure')
+  }
+}
+
+// Supprimer une soudure
+const supprimerSoudure = async (soudureId: string) => {
+  if (!confirm('Supprimer cette soudure ?')) return
+  try {
+    const response = await AuthService.apiCall(`${BASE_URL}/api/soudures/${soudureId}/`, {
+      method: 'DELETE'
+    })
+    if (!response.ok) throw new Error(`Erreur ${response.status}`)
+    if (manchonIdEnMatrice.value) await voirSoudures(manchonIdEnMatrice.value, manchonNomEnMatrice.value ?? undefined)
+    console.log('✅ Soudure supprimée')
+  } catch (erreur) {
+    console.error('❌ Échec suppression soudure:', erreur)
+    alert('Impossible de supprimer la soudure')
+  }
+}
+
+// Souder tout 1:1 (automatique)
+const souderTout1a1 = async () => {
+  if (!confirm('Souder toutes les fibres 1:1 ? (F1↔F1, F2↔F2, etc.)')) return
+  // TODO: Appel API batch
+  alert('Fonctionnalité à implémenter : soudure batch 1:1')
+}
+
+// Désouder tout
+const dessouderTout = async () => {
+  if (!confirm('Supprimer TOUTES les soudures de ce manchon ?')) return
+  // TODO: Appel API batch
+  alert('Fonctionnalité à implémenter : suppression batch')
+}
+
+// Obtenir la couleur hex d'une fibre par nom
+const getCouleurParNom = (nomCouleur: string | null) => {
+  return COULEURS_FIBRES[nomCouleur ?? 'INCONNUE'] ?? COULEURS_FIBRES['INCONNUE']
+}
+
+const fermerMatrice = () => {
+  afficherMatrice.value = false
+  manchonEnMatrice.value = null
+  manchonNomEnMatrice.value = null
+  manchonIdEnMatrice.value = null
+  modeSoudure.actif = false
+  modeSoudure.cableSource = null
+  modeSoudure.fibreSource = null
+}
+
+// Voir les soudures d'un manchon — ouvre la matrice de soudures
+const voirSoudures = async (manchonId: string, manchonNom?: string) => {
+  try {
+    chargementMatrice.value = true
+    afficherMatrice.value = true
+    manchonIdEnMatrice.value = manchonId
+    manchonNomEnMatrice.value = manchonNom ?? manchonId
+
+    const response = await AuthService.apiCall(`${BASE_URL}/api/manchons/${manchonId}/matrice/`)
+    if (!response.ok) throw new Error(`Erreur ${response.status}`)
+
+    const data: ContenuMatrice = await response.json()
+    manchonEnMatrice.value = data
+
+  } catch (erreur) {
+    console.error('❌ Échec chargement matrice soudures:', erreur)
+    alert('Impossible de charger la matrice de soudures')
+    fermerMatrice()
+  } finally {
+    chargementMatrice.value = false
+  }
+}
+
+// Ajouter un manchon dans cette chambre
+const ajouterManchon = (noeudId: string) => {
+  // TODO: Ouvrir formulaire création manchon
+  alert(`Ajouter manchon dans le nœud ${noeudId}`)
 }
 
 // Déduplique les câbles d'une chambre de tirage par id
@@ -715,6 +1177,48 @@ const dessinerNoeuds = (donneesGeoJson: any) => {
 }
 
 
+//====================================================
+// GESTION DES CENTRES 
+//====================================================
+
+// Liste des centres pour le dropdown partenaire
+const centresDisponibles = ref<{ id: string, nom: string }[]>([])
+
+// Charger les centres au démarrage
+const chargerCentres = async () => {
+  try {
+    const response = await AuthService.apiCall(`${BASE_URL}/api/centres/`)
+    if (!response.ok) throw new Error(`Erreur ${response.status}`)
+    
+    const data = await response.json()
+
+    // L'API centres retourne un GeoJSON FeatureCollection
+    // Cas 1 : pagination DRF  → data.results.features
+    // Cas 2 : GeoJSON direct  → data.features
+    // Cas 3 : tableau simple  → data
+    let liste: any[] = []
+    if (data.results?.features) {
+      liste = data.results.features
+    } else if (data.features) {
+      liste = data.features
+    } else if (Array.isArray(data.results)) {
+      liste = data.results
+    } else if (Array.isArray(data)) {
+      liste = data
+    }
+
+    centresDisponibles.value = liste.map((c: any) => ({
+      id: c.id ?? c.properties?.id,
+      nom: c.properties?.nom_centre || c.properties?.nom || c.nom_centre || c.nom || 'Centre sans nom'
+    }))
+    
+    console.log("Centres chargés:", centresDisponibles.value)
+  } catch (erreur) {
+    console.error("❌ Échec chargement centres:", erreur)
+  }
+}
+
+
 
 // =====================================================
 // FONCTION POUR DESSINER LES FRONTIÈRES (Départements)
@@ -783,13 +1287,16 @@ const chargerInfrastructure = async () => {
     const donneesNoeuds = await reponseNoeuds.json()
 
     // DÉBALLAGE ET DESSIN DES CÂBLES
+    console.log("📦 Réponse brute câbles:", donneesCables)
     let valiseGeoJson = null
     if (donneesCables.results && donneesCables.results.type === 'FeatureCollection') {
       valiseGeoJson = donneesCables.results
     } else if (donneesCables.type === 'FeatureCollection') {
       valiseGeoJson = donneesCables
     }
+    console.log("🗺️ valiseGeoJson câbles:", valiseGeoJson)
     if (valiseGeoJson) dessinerCables(valiseGeoJson)
+    else console.warn("⚠️ Aucun GeoJSON câbles trouvé dans la réponse")
 
    // 2. DÉBALLAGE ET DESSIN DES NŒUDS (Mode GeoJSON pur)
     let valiseNoeudsGeoJson = null
@@ -818,7 +1325,18 @@ const chargerInfrastructure = async () => {
 }
 
 // 4. CYCLE DE VIE VUE.JS
-onMounted(() => {
+onMounted(async () => {
+  // Charger le profil utilisateur connecté
+  const repMe = await AuthService.apiCall(`${BASE_URL}/api/utilisateurs/me/`)
+  if (repMe.ok) {
+    const moi = await repMe.json()
+    const prenom = moi.first_name?.trim()
+    const nom = moi.last_name?.trim()
+    utilisateurNom.value = prenom || nom
+      ? `${prenom} ${nom}`.trim()
+      : moi.username
+  }
+
   const centreCoordonnees: L.LatLngExpression = [3.8480, 11.5021]
 
   map.value = L.map('map', {
@@ -870,6 +1388,9 @@ onMounted(() => {
   // On lance l'appel API une fois la carte prête
   chargerInfrastructure()
 
+  // chargement des centres
+  await chargerCentres()
+
 }) 
 
 onUnmounted(() => {
@@ -900,6 +1421,7 @@ onUnmounted(() => {
           <button class="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50">Éditer ▼</button>
         </nav>
         <div class="w-px h-6 bg-gray-300 mx-1 hidden md:block"></div>
+        <span v-if="utilisateurNom" class="text-xs text-gray-500 hidden md:block">👤 {{ utilisateurNom }}</span>
         <button @click="deconnecter" class="px-3 py-1 text-sm font-bold text-gray-600 hover:text-red-600 transition">Déconnexion</button>
       </div>
     </header>
@@ -931,9 +1453,38 @@ onUnmounted(() => {
         <button class="p-1.5 hover:bg-white rounded transition text-gray-700"><span class="text-sm">🗺️</span></button>
         <button class="p-1.5 hover:bg-white rounded transition text-gray-700"><span class="text-sm">📏</span></button>
         <div class="h-px w-full bg-gray-300 my-0.5"></div>
-        <button @click="ouvrirPanneau" class="p-1.5 hover:bg-emerald-50 rounded transition text-emerald-600" title="Ajouter un Nœud">
-          <span class="text-sm font-bold">➕</span>
-        </button>
+        <!-- Bouton + avec menu déroulant (Nœud / Câble) -->
+        <div class="relative">
+          <button @click="ouvrirMenuCreation"
+                  class="p-1.5 hover:bg-emerald-50 rounded transition text-emerald-600" title="Créer...">
+            <span class="text-sm font-bold">➕</span>
+          </button>
+
+          <transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 scale-95 -translate-y-2"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-from-class="opacity-100 scale-100 translate-y-0"
+            leave-to-class="opacity-0 scale-95 -translate-y-2"
+          >
+            <div v-if="menuCreationOuvert"
+                 class="absolute top-full mt-1 right-0 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden min-w-[160px] z-10">
+
+              <button @click="choisirCreation('noeud')"
+                      class="w-full px-4 py-3 text-left text-sm hover:bg-emerald-50 flex items-center gap-3 border-b border-gray-100">
+                <span class="text-lg">📍</span>
+                <span class="font-medium text-gray-700">Nouveau Nœud</span>
+              </button>
+
+              <button @click="choisirCreation('cable')"
+                      class="w-full px-4 py-3 text-left text-sm hover:bg-blue-50 flex items-center gap-3">
+                <span class="text-lg">🔌</span>
+                <span class="font-medium text-gray-700">Nouveau Câble</span>
+              </button>
+            </div>
+          </transition>
+        </div>
         <button @click="afficherDashboard = true" class="p-1.5 hover:bg-purple-50 rounded transition text-purple-600" title="Performances Système">
           <span class="text-sm">📊</span>
         </button>
@@ -1103,11 +1654,13 @@ onUnmounted(() => {
            <div class="p-4 flex-1 overflow-y-auto flex flex-col gap-3" @mousedown.stop>
               <p class="text-xs text-gray-500 mb-2 font-medium">Remplissez les informations du nœud à ajouter. Les coordonnées GPS sont essentielles pour l'ancrage sur la carte.</p>
               
+              <!-- Nom du nœud -->
               <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Nom / Code du site</label>
                 <input v-model="formulaireNoeud.nom_code" type="text" placeholder="Ex: CT-YAO-01" class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none">
               </div>
 
+              <!-- Type d'infrastructure -->
               <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Type d'infrastructure</label>
                 <select v-model="formulaireNoeud.type_noeud" class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none">
@@ -1122,6 +1675,35 @@ onUnmounted(() => {
                 </select>
               </div>
 
+              <!-- Option frontière — visible uniquement pour les manchons -->
+              <div v-if="['MANCHON', 'MANCHON_ENTERRE', 'MANCHON_AERIEN'].includes(formulaireNoeud.type_noeud)"
+                   class="bg-amber-50 p-3 rounded border border-amber-200">
+
+                <!-- Case à cocher point frontière -->
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox"
+                         v-model="formulaireNoeud.est_frontiere"
+                         class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500">
+                  <span class="text-xs font-bold text-amber-700">🏁 Point frontière</span>
+                </label>
+                <p class="text-[10px] text-amber-600 mt-1 ml-6">
+                  Cochez si ce manchon est à la limite de votre zone
+                </p>
+
+                <!-- Sélection du centre partenaire — visible si frontière cochée -->
+                <div v-if="formulaireNoeud.est_frontiere" class="mt-3 ml-6">
+                  <label class="block text-xs font-bold text-amber-700 mb-1">Centre partenaire</label>
+                  <select v-model="formulaireNoeud.centre_partenaire_id"
+                          class="w-full text-xs p-1.5 border border-amber-300 rounded focus:ring-1 focus:ring-amber-500 outline-none bg-white">
+                    <option value="">-- Sélectionner --</option>
+                    <option v-for="centre in centresDisponibles" :key="centre.id" :value="centre.id">
+                      {{ centre.nom }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- État opérationnel et énergie -->
               <div class="flex gap-2">
                 <div class="flex-1">
                   <label class="block text-xs font-bold text-gray-700 mb-1">État</label>
@@ -1139,6 +1721,7 @@ onUnmounted(() => {
                 </div>
               </div>
 
+              <!-- Coordonnées GPS -->
               <div class="bg-gray-50 p-2 rounded border border-gray-200 mt-1">
                   <h4 class="text-[10px] font-bold text-gray-500 mb-2 uppercase">Coordonnées GPS</h4>
                   <div class="flex gap-2">
@@ -1159,6 +1742,158 @@ onUnmounted(() => {
         </div>
       </transition>
 
+
+      <!-- =====================================================
+           FENÊTRE DE CRÉATION DE CÂBLE
+      ===================================================== -->
+      <transition
+        enter-active-class="transition-transform duration-300 ease-out"
+        enter-from-class="translate-x-full opacity-0"
+        enter-to-class="translate-x-0 opacity-100"
+        leave-active-class="transition-transform duration-200 ease-in"
+        leave-from-class="translate-x-0 opacity-100"
+        leave-to-class="translate-x-full opacity-0"
+      >
+        <div v-if="panneauCableOuvert"
+             class="absolute z-[3000] bg-white rounded-xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden"
+             style="width: 340px; max-height: 85vh;"
+             :style="{ left: fenetres.creationCable.x + 'px', top: fenetres.creationCable.y + 'px' }"
+             @mousedown.stop @click.stop>
+
+          <!-- Barre de titre draggable -->
+          <div @mousedown.stop.prevent="demarrerDrag($event, 'creationCable')"
+               class="bg-blue-50 px-4 py-3 border-b border-blue-200 cursor-move flex justify-between items-center select-none">
+            <h3 class="font-bold text-blue-800 text-sm flex items-center gap-2">
+              <span class="text-blue-600">🔌</span> Nouveau Câble
+            </h3>
+            <button @mousedown.stop @click.stop="fermerPanneauCable"
+                    class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none">&times;</button>
+          </div>
+
+          <!-- Formulaire -->
+          <div class="p-4 flex-1 overflow-y-auto flex flex-col gap-3" @mousedown.stop>
+
+            <p class="text-xs text-gray-500 mb-2 font-medium">
+              Créez un câble en reliant deux nœuds existants.
+            </p>
+
+            <!-- Nom du câble -->
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Nom / Code du câble</label>
+              <input v-model="formulaireCable.nom_code" type="text" placeholder="Ex: CABLE_MBA_YAO_001"
+                     class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+            </div>
+
+            <!-- Nœud départ -->
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Nœud de départ</label>
+              <select v-model="formulaireCable.noeud_depart_id"
+                      class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                <option value="">-- Sélectionner --</option>
+                <option v-for="noeud in noeudsDisponibles" :key="noeud.id" :value="noeud.id">
+                  {{ noeud.nom }} ({{ noeud.type }})
+                </option>
+              </select>
+            </div>
+
+            <!-- Nœud fin -->
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Nœud de fin</label>
+              <select v-model="formulaireCable.noeud_fin_id"
+                      class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                <option value="">-- Sélectionner --</option>
+                <option v-for="noeud in noeudsDisponibles" :key="noeud.id" :value="noeud.id"
+                        :disabled="noeud.id === formulaireCable.noeud_depart_id">
+                  {{ noeud.nom }} ({{ noeud.type }})
+                </option>
+              </select>
+            </div>
+
+            <!-- Capacité et Norme -->
+            <div class="flex gap-2">
+              <div class="flex-1">
+                <label class="block text-xs font-bold text-gray-700 mb-1">Capacité (fibres)</label>
+                <select v-model="formulaireCable.capacite_fibres"
+                        class="w-full text-xs p-1.5 border border-gray-300 rounded outline-none">
+                  <option :value="6">6 FO</option>
+                  <option :value="12">12 FO</option>
+                  <option :value="24">24 FO</option>
+                  <option :value="48">48 FO</option>
+                  <option :value="72">72 FO</option>
+                  <option :value="96">96 FO</option>
+                  <option :value="144">144 FO</option>
+                  <option :value="288">288 FO</option>
+                </select>
+              </div>
+              <div class="flex-1">
+                <label class="block text-xs font-bold text-gray-700 mb-1">Norme couleurs *</label>
+                <select v-model="formulaireCable.norme_id"
+                        class="w-full text-xs p-1.5 border border-gray-300 rounded outline-none">
+                  <option value="">-- Sélectionner --</option>
+                  <option v-for="norme in normesDisponibles" :key="norme.id" :value="norme.id">
+                    {{ norme.code }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Technologie et Statut -->
+            <div class="flex gap-2">
+              <div class="flex-1">
+                <label class="block text-xs font-bold text-gray-700 mb-1">Technologie</label>
+                <select v-model="formulaireCable.technologie_transport"
+                        class="w-full text-xs p-1.5 border border-gray-300 rounded outline-none">
+                  <option value="FO">Fibre Optique</option>
+                  <option value="FH">Faisceau Hertzien</option>
+                  <option value="SAT">Satellite</option>
+                </select>
+              </div>
+              <div class="flex-1">
+                <label class="block text-xs font-bold text-gray-700 mb-1">Statut</label>
+                <select v-model="formulaireCable.statut_physique"
+                        class="w-full text-xs p-1.5 border border-gray-300 rounded outline-none">
+                  <option value="EN_SERVICE">En service</option>
+                  <option value="EN_PROJET">En projet</option>
+                  <option value="HORS_SERVICE">Hors service</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Centre propriétaire — rempli automatiquement depuis le profil utilisateur -->
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Centre propriétaire</label>
+              <div v-if="centreUtilisateurNom"
+                   class="w-full text-sm p-1.5 border border-gray-200 rounded bg-gray-50 text-gray-600 flex items-center gap-2">
+                <span class="text-xs">🏢</span>
+                <span>{{ centreUtilisateurNom }}</span>
+              </div>
+              <div v-else class="w-full text-sm p-1.5 border border-red-200 rounded bg-red-50 text-red-600 text-xs">
+                ⚠️ Aucun centre assigné à votre profil — contactez un administrateur
+              </div>
+            </div>
+
+            <!-- Longueur -->
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Longueur (mètres)</label>
+              <input v-model="formulaireCable.longueur_reelle_metres" type="number" placeholder="Ex: 12500"
+                     class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+            </div>
+
+          </div>
+
+          <!-- Boutons -->
+          <div class="p-3 border-t border-gray-200 bg-gray-50 flex gap-2 justify-end" @mousedown.stop>
+            <button @click="fermerPanneauCable"
+                    class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100">
+              Annuler
+            </button>
+            <button @click="sauvegarderNouveauCable"
+                    class="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700 shadow-sm">
+              Créer Câble
+            </button>
+          </div>
+        </div>
+      </transition>
 
       <!-- =====================================================
      FENÊTRE D'INSPECTION NŒUD (CENTRE / BTS / CLIENT)
@@ -1216,7 +1951,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Contenu selon le type de nœud -->
-        <template v-if="noeudEnInspection.type_noeud !== 'CHAMBRE'">
+        <template v-if="!['CHAMBRE', 'MANCHON', 'MANCHON_ENTERRE', 'MANCHON_AERIEN'].includes(noeudEnInspection.type_noeud)">
 
         <!-- ODF / Boîtiers -->
         <div class="mb-4">
@@ -1349,6 +2084,80 @@ onUnmounted(() => {
 
         </template><!-- fin v-else-if CHAMBRE -->
 
+        <!-- ========== CONTENU MANCHON (MANCHON, MANCHON_ENTERRE, MANCHON_AERIEN) ========== -->
+        <template v-else-if="['MANCHON', 'MANCHON_ENTERRE', 'MANCHON_AERIEN'].includes(noeudEnInspection.type_noeud)">
+
+          <!-- SECTION : Câbles en transit -->
+          <div class="mb-4">
+            <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
+              🔌 Câbles en transit
+              <span class="bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full text-[10px]">
+                {{ noeudEnInspection.contenu.cables?.length || 0 }}
+              </span>
+            </h4>
+
+            <div v-if="noeudEnInspection.contenu.cables?.length > 0" class="space-y-2">
+              <div v-for="cable in noeudEnInspection.contenu.cables" :key="cable.id"
+                   class="bg-blue-50 border border-blue-200 rounded-lg p-2 cursor-pointer hover:bg-blue-100 transition-colors"
+                   @click="inspecterCable(cable.id)">
+                <div class="flex justify-between items-center">
+                  <span class="font-semibold text-blue-800 text-sm">{{ cable.nom_code || 'Câble sans nom' }}</span>
+                  <span class="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">
+                    {{ cable.capacite_fibres }} FO
+                  </span>
+                </div>
+                <div class="flex justify-between text-xs text-blue-600 mt-1">
+                  <span>{{ cable.technologie_transport || 'N/A' }}</span>
+                  <span>{{ formaterLongueur(cable.longueur_reelle_metres) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <p v-else class="text-xs text-gray-400 italic">Aucun câble en transit</p>
+          </div>
+
+          <!-- SECTION : Manchons installés -->
+          <div class="mb-4">
+            <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
+              🔶 Manchons installés
+              <span class="bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded-full text-[10px]">
+                {{ noeudEnInspection.contenu.manchons?.length || 0 }}
+              </span>
+            </h4>
+
+            <div v-if="(noeudEnInspection.contenu.manchons?.length ?? 0) > 0" class="space-y-2">
+              <div v-for="manchon in noeudEnInspection.contenu.manchons" :key="manchon.id"
+                   class="bg-amber-50 border border-amber-200 rounded-lg p-2">
+                <div class="flex justify-between items-center">
+                  <span class="font-semibold text-amber-800 text-sm">🔶 {{ manchon.nom_reference || 'Manchon sans nom' }}</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full"
+                        :class="manchon.etat === 'BON' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                    {{ manchon.etat || 'Inconnu' }}
+                  </span>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                  <span class="text-xs text-amber-600">{{ manchon.type_label }}</span>
+                  <button
+                    @click="voirSoudures(manchon.id, manchon.nom_reference ?? undefined)"
+                    class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold py-1 px-2 rounded transition-colors">
+                    🔍 Soudures
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <p v-else class="text-xs text-gray-400 italic">Aucun manchon installé</p>
+          </div>
+
+          <!-- Bouton ajouter manchon -->
+          <button
+            @click="ajouterManchon(noeudEnInspection.id)"
+            class="w-full bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs font-bold py-2 px-4 rounded border border-amber-300 transition-colors">
+            ➕ Ajouter un manchon
+          </button>
+
+        </template><!-- fin v-else-if MANCHON -->
+
       </div>
     </div>
   </div>
@@ -1356,6 +2165,155 @@ onUnmounted(() => {
 
      
     
+
+      <!-- ========== PANNEAU MATRICE DE SOUDURES ========== -->
+      <transition
+        enter-active-class="transition-transform duration-200 ease-out"
+        enter-from-class="translate-y-4 opacity-0"
+        enter-to-class="translate-y-0 opacity-100"
+        leave-active-class="transition-transform duration-150 ease-in"
+        leave-from-class="translate-y-0 opacity-100"
+        leave-to-class="translate-y-4 opacity-0"
+      >
+        <div v-if="afficherMatrice"
+             class="absolute z-[5000] bg-white rounded-xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden"
+             style="width: 520px; max-height: 85vh;"
+             :style="{ left: fenetres.matrice.x + 'px', top: fenetres.matrice.y + 'px' }"
+             @mousedown.stop @click.stop>
+
+          <!-- Barre de titre draggable -->
+          <div @mousedown.stop.prevent="demarrerDrag($event, 'matrice')"
+               class="px-4 py-3 cursor-move flex justify-between items-center select-none bg-amber-50 border-b border-amber-200">
+            <h3 class="font-bold text-sm text-amber-800 flex items-center gap-2">
+              🔶 Matrice de soudures
+              <span v-if="manchonNomEnMatrice" class="font-normal text-amber-600">— {{ manchonNomEnMatrice }}</span>
+            </h3>
+            <button @mousedown.stop @click.stop="fermerMatrice"
+                    class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none p-1">&times;</button>
+          </div>
+
+          <!-- Contenu -->
+          <div class="flex-1 overflow-y-auto p-4" @mousedown.stop>
+
+            <!-- Chargement -->
+            <div v-if="chargementMatrice" class="flex items-center justify-center py-12">
+              <div class="animate-spin rounded-full h-10 w-10 border-4 border-amber-500 border-t-transparent"></div>
+            </div>
+
+            <!-- Données chargées -->
+            <div v-else-if="manchonEnMatrice">
+
+              <!-- Stats -->
+              <div class="grid grid-cols-3 gap-2 mb-4">
+                <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
+                  <p class="text-lg font-bold text-gray-700">{{ manchonEnMatrice.stats.total_fibres }}</p>
+                  <p class="text-[10px] text-gray-500 uppercase">Total fibres</p>
+                </div>
+                <div class="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+                  <p class="text-lg font-bold text-green-700">{{ manchonEnMatrice.stats.fibres_soudees }}</p>
+                  <p class="text-[10px] text-green-500 uppercase">Soudées</p>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-2 text-center border border-orange-200">
+                  <p class="text-lg font-bold text-orange-700">{{ manchonEnMatrice.stats.fibres_libres }}</p>
+                  <p class="text-[10px] text-orange-500 uppercase">Libres</p>
+                </div>
+              </div>
+
+              <!-- Filtres -->
+              <div class="flex gap-2 mb-3">
+                <select v-model="filtreCableSource"
+                        class="flex-1 text-xs border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-amber-400">
+                  <option value="">Tous les câbles</option>
+                  <option v-for="c in manchonEnMatrice.cables" :key="c.cable_id" :value="c.cable_id">
+                    {{ c.cable_nom }}
+                  </option>
+                </select>
+                <select v-model="filtreEtat"
+                        class="flex-1 text-xs border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-amber-400">
+                  <option value="">Toutes les fibres</option>
+                  <option value="soudees">Soudées</option>
+                  <option value="libres">Libres</option>
+                </select>
+              </div>
+
+              <!-- Bannière mode soudure -->
+              <div v-if="modeSoudure.actif"
+                   class="mb-3 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2 flex justify-between items-center">
+                <span class="text-xs text-amber-700 font-medium">
+                  🔗 Source : <b>{{ modeSoudure.cableSource?.cable_nom }}</b>
+                  T{{ modeSoudure.fibreSource?.numero_tube }}-F{{ modeSoudure.fibreSource?.numero_fibre }}
+                  — Cliquez la fibre destination
+                </span>
+                <button @click="annulerSoudure"
+                        class="text-xs text-red-500 hover:text-red-700 font-bold">Annuler</button>
+              </div>
+
+              <!-- Câbles et fibres -->
+              <div v-for="cable in manchonEnMatrice.cables" :key="cable.cable_id" class="mb-4">
+                <h4 class="text-xs font-bold text-gray-600 uppercase mb-2 flex items-center gap-2">
+                  🔌 {{ cable.cable_nom }}
+                  <span class="bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full text-[10px] font-normal">
+                    {{ cable.capacite }} FO
+                  </span>
+                </h4>
+
+                <div class="space-y-1">
+                  <div v-for="fibre in filtrerFibres(cable)" :key="fibre.fibre_id"
+                       class="flex items-center gap-2 text-xs rounded px-2 py-1 cursor-pointer transition-colors"
+                       :class="[
+                         modeSoudure.fibreSource?.fibre_id === fibre.fibre_id
+                           ? 'bg-amber-100 border border-amber-400 ring-1 ring-amber-300'
+                           : fibre.soudure_id
+                             ? 'bg-green-50 border border-green-100 hover:bg-green-100'
+                             : 'bg-gray-50 border border-gray-100 hover:bg-gray-100'
+                       ]"
+                       @click="selectionnerFibre(cable, fibre)">
+
+                    <!-- Pastille couleur fibre -->
+                    <span class="w-3 h-3 rounded-full flex-shrink-0 border border-gray-300"
+                          :style="{ backgroundColor: fibre.code_couleur_hex ?? getCouleurParNom(null) }"></span>
+
+                    <!-- Tube / Fibre -->
+                    <span class="text-gray-500 w-16 flex-shrink-0">T{{ fibre.numero_tube }}-F{{ fibre.numero_fibre }}</span>
+
+                    <!-- Connexion -->
+                    <span v-if="fibre.fibre_connectee_cable" class="text-green-700 flex-1 truncate">
+                      ↔ {{ fibre.fibre_connectee_cable }} T{{ fibre.fibre_connectee_tube }}-F{{ fibre.fibre_connectee_numero }}
+                    </span>
+                    <span v-else class="text-gray-400 flex-1 italic">Libre</span>
+
+                    <!-- Statut soudure -->
+                    <span v-if="fibre.soudure_statut"
+                          class="px-1.5 py-0.5 rounded-full text-[10px]"
+                          :class="fibre.soudure_statut === 'BON' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                      {{ fibre.soudure_statut }}
+                    </span>
+
+                    <!-- Bouton supprimer soudure -->
+                    <button v-if="fibre.soudure_id"
+                            @click.stop="supprimerSoudure(fibre.soudure_id)"
+                            class="text-red-400 hover:text-red-600 font-bold text-xs leading-none px-1">✕</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions batch -->
+              <div class="flex gap-2 pt-3 border-t border-gray-200 mt-2">
+                <button @click="souderTout1a1"
+                        class="flex-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 font-bold py-1.5 px-3 rounded border border-green-200 transition-colors">
+                  ⚡ Souder 1:1
+                </button>
+                <button @click="dessouderTout"
+                        class="flex-1 text-xs bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1.5 px-3 rounded border border-red-200 transition-colors">
+                  🗑 Tout désouder
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </transition>
 
       <transition
         enter-active-class="transition-opacity duration-200"
