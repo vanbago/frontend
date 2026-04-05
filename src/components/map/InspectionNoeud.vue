@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { NoeudCentreInspection, CableResum, ManchonResum } from '../../types/map'
+import type { NoeudCentreInspection, CableResum } from '../../types/map'
 import { styleParType } from '../../composables/useNoeuds'
 import { formaterLongueur } from '../../composables/useCables'
 import type { NomFenetre } from '../../composables/useDrag'
