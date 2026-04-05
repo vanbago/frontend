@@ -91,6 +91,7 @@ onUnmounted(() => { map.value?.remove() })
       <div class="flex items-center gap-2 shrink-0">
         <nav class="hidden md:flex items-center gap-1 mr-2">
           <button class="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50">Éditer ▼</button>
+          <router-link to="/inventaire" class="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50">📋 Inventaire</router-link>
         </nav>
         <div class="w-px h-6 bg-gray-300 mx-1 hidden md:block"></div>
         <span v-if="utilisateurNom" class="text-xs text-gray-500 hidden md:block">👤 {{ utilisateurNom }}</span>
