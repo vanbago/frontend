@@ -201,7 +201,7 @@ onUnmounted(() => { map.value?.remove() })
         :chargement="noeuds.chargementAjoutManchon.value"
         @close="noeuds.fermerPopupAjouterManchon"
         @start-drag="demarrerDrag"
-        @creer="(payload) => noeuds.creerManchon(payload, () => chargerInfrastructure(cables.dessinerCables, noeuds.dessinerNoeuds))"
+        @creer="(payload) => noeuds.creerManchon(payload, chargerInfrastructure)"
       />
 
       <!-- FORMULAIRE CÂBLE -->
