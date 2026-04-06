@@ -113,6 +113,7 @@ export interface ContenuMatrice {
     fibres_soudees: number
     fibres_libres: number
   }
+  mode?: 'attente' | 'actif'
 }
 
 export interface NoeudCentreInspection {

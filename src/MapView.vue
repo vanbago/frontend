@@ -401,6 +401,18 @@ onUnmounted(() => { map.value?.remove() })
                 </div>
               </div>
 
+              <!-- Bannière manchon en attente -->
+              <div v-if="inspection.manchonEnMatrice.value?.mode === 'attente'"
+                   class="mb-3 bg-orange-50 border border-orange-300 rounded-lg px-3 py-2">
+                <p class="text-xs text-orange-700 flex items-center gap-2">
+                  <span>⏳</span>
+                  <span>
+                    Manchon en attente — tous les câbles du nœud sont affichés.
+                    <b>Associez des câbles</b> pour limiter la vue à vos connexions réelles.
+                  </span>
+                </p>
+              </div>
+
               <!-- Filtres -->
               <div class="flex gap-2 mb-3">
                 <select v-model="inspection.filtreCableSource.value"
