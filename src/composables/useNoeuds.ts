@@ -175,7 +175,7 @@ const fermerPopupAjouterManchon = () => {
 
     if (!response.ok) {
       const erreur = await response.json()
-      throw new Error(erreur.erreur || `Erreur ${response.status}`)
+      throw new Error(erreur.detail || erreur.erreur || `Erreur ${response.status}`)
     }
 
     const data = await response.json()
