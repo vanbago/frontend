@@ -15,6 +15,7 @@ import LegendeMap from './components/map/LegendeMap.vue'
 import InspectionCable from './components/map/InspectionCable.vue'
 import InspectionNoeud from './components/map/InspectionNoeud.vue'
 import FormulaireNoeud from './components/map/FormulaireNoeud.vue'
+import PopupAjouterManchon from './components/map/PopupAjouterManchon.vue'
 
 // ===== ROUTER =====
 const router = useRouter()
@@ -58,7 +59,12 @@ const onInspecterCable = (id: string) => cables.inspecterCable(id)
 const onVoirSoudures = (manchonId: string, manchonNom?: string) => inspection.voirSoudures(manchonId, manchonNom)
 const onVoirSouduresNoeud = (noeudId: string, noeudNom?: string) => inspection.voirSouduresNoeud(noeudId, noeudNom)
 const onInstallerManchon = (noeudId: string) => alert(`Fonctionnalité à venir : Installer manchon dans le nœud ${noeudId}`)
-const onAjouterManchon = (noeudId: string) => alert(`Ajouter manchon dans le nœud ${noeudId}`)
+const onAjouterManchon = (noeudId: string) => {
+  const noeud = noeuds.noeudEnInspection.value
+  const nom = noeud?.nom_code ?? noeudId
+  const cables = noeuds.cablesTransitUniques.value
+  noeuds.ouvrirPopupAjouterManchon(noeudId, nom, cables)
+}
 
 // ===== CYCLE DE VIE =====
 onMounted(async () => {
@@ -183,6 +189,19 @@ onUnmounted(() => { map.value?.remove() })
         @close="noeuds.fermerPanneau"
         @start-drag="demarrerDrag"
         @save="noeuds.sauvegarderNouveauNoeud(rechargerNoeuds)"
+      />
+              
+      <!-- POPUP AJOUTER MANCHON -->
+       <PopupAjouterManchon
+        :visible="noeuds.popupAjouterManchonVisible.value"
+        :position="fenetres.ajouterManchon"
+        :noeud-id="noeuds.noeudPourManchon.value?.id ?? ''"
+        :noeud-nom="noeuds.noeudPourManchon.value?.nom ?? ''"
+        :cables-disponibles="noeuds.cablesDisponiblesPourManchon.value"
+        :chargement="noeuds.chargementAjoutManchon.value"
+        @close="noeuds.fermerPopupAjouterManchon"
+        @start-drag="demarrerDrag"
+        @creer="(payload) => noeuds.creerManchon(payload, () => chargerInfrastructure(cables.dessinerCables, noeuds.dessinerNoeuds))"
       />
 
       <!-- FORMULAIRE CÂBLE -->

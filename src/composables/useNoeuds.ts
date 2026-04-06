@@ -36,6 +36,14 @@ export function useNoeuds(map: ShallowRef<L.Map | null>) {
   const noeudEnInspection = ref<NoeudCentreInspection | null>(null)
   const chargementInspectionNoeud = ref(false)
 
+  // popup pour manchon
+  const popupAjouterManchonVisible = ref(false)
+  const noeudPourManchon = ref<{ id: string, nom: string } | null>(null)
+  const chargementAjoutManchon = ref(false)
+  const cablesDisponiblesPourManchon = ref<any[]>([])
+
+
+
   // — Formulaire nœud —
   const panneauOuvert = ref(false)
   const centresDisponibles = ref<{ id: string, nom: string }[]>([])
@@ -50,6 +58,8 @@ export function useNoeuds(map: ShallowRef<L.Map | null>) {
     est_frontiere: false,
     centre_partenaire_id: ''
   })
+
+
 
   // — Computed —
   const cablesTransitUniques = computed(() => {
@@ -83,6 +93,20 @@ export function useNoeuds(map: ShallowRef<L.Map | null>) {
       chargementInspectionNoeud.value = false
     }
   }
+
+  // ouvrir popup pour ajouter manchon
+  const ouvrirPopupAjouterManchon = async (noeudId: string, noeudNom: string, cables: any[]) => {
+  noeudPourManchon.value = { id: noeudId, nom: noeudNom }
+  // On utilise les câbles déjà chargés par l'inspection — pas de nouvel appel API
+  cablesDisponiblesPourManchon.value = cables
+  popupAjouterManchonVisible.value = true
+}
+
+const fermerPopupAjouterManchon = () => {
+  popupAjouterManchonVisible.value = false
+  noeudPourManchon.value = null
+  cablesDisponiblesPourManchon.value = []
+}
 
   // — Dessin —
   const dessinerNoeuds = (donneesGeoJson: any) => {
@@ -129,6 +153,50 @@ export function useNoeuds(map: ShallowRef<L.Map | null>) {
 
     calqueNoeuds.bringToFront()
   }
+
+
+  const creerManchon = async (
+  payload: { nom_reference: string; nombre_cassettes: number | null; cables_ids: string[] },
+  onSuccess: () => void
+) => {
+  if (!noeudPourManchon.value) return
+
+  try {
+    chargementAjoutManchon.value = true
+
+    const response = await AuthService.apiCall(
+      `${BASE_URL}/api/noeuds/${noeudPourManchon.value.id}/ajouter_manchon/`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }
+    )
+
+    if (!response.ok) {
+      const erreur = await response.json()
+      throw new Error(erreur.erreur || `Erreur ${response.status}`)
+    }
+
+    const data = await response.json()
+    alert(data.message)
+    fermerPopupAjouterManchon()
+
+    // Rafraîchir l'inspection du nœud pour voir le nouveau manchon
+    const noeudId = noeudPourManchon.value?.id
+    if (noeudId) {
+      await inspecterNoeud(noeudId)
+    }
+
+    onSuccess()
+
+  } catch (erreur: any) {
+    console.error('❌ Échec création manchon:', erreur)
+    alert(`Erreur : ${erreur.message}`)
+  } finally {
+    chargementAjoutManchon.value = false
+  }
+}
 
   // — Centres —
   const chargerCentres = async () => {
@@ -228,5 +296,8 @@ export function useNoeuds(map: ShallowRef<L.Map | null>) {
     dessinerNoeuds, inspecterNoeud, fermerInspectionNoeud,
     chargerCentres,
     ouvrirPanneau, fermerPanneau, sauvegarderNouveauNoeud,
+    popupAjouterManchonVisible, noeudPourManchon,
+    cablesDisponiblesPourManchon, chargementAjoutManchon,
+    ouvrirPopupAjouterManchon, fermerPopupAjouterManchon, creerManchon,
   }
 }
