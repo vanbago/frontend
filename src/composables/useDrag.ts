@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 
-export type NomFenetre = 'monitoring' | 'creation' | 'inspection' | 'inspectionNoeud' | 'matrice' | 'creationCable'
+export type NomFenetre = 'monitoring' | 'creation' | 'inspection' | 'inspectionNoeud' | 'matrice' | 'creationCable'| 'ajouterManchon'
 
 export function useDrag() {
   const fenetres = reactive({
@@ -9,7 +9,8 @@ export function useDrag() {
     inspection:      { x: 60, y: 100 },
     inspectionNoeud: { x: 60, y: 100 },
     matrice:         { x: 100, y: 80 },
-    creationCable:   { x: window.innerWidth > 800 ? window.innerWidth - 380 : 20, y: 80 }
+    creationCable:   { x: window.innerWidth > 800 ? window.innerWidth - 380 : 20, y: 80 },
+    ajouterManchon : {x:380, y:85}
   })
 
   let dragInfo = {
