@@ -16,7 +16,7 @@ const emit = defineEmits<{
   close: []
   startDrag: [event: MouseEvent, fenetre: NomFenetre]
   inspecterCable: [id: string]
-  voirSoudures: [manchonId: string, manchonNom?: string]
+  voirSoudures: [manchonId: string, manchonNom?: string, enAttente?: boolean]
   voirSouduresNoeud: [noeudId: string, noeudNom?: string]
   installerManchon: [noeudId: string]
   ajouterManchon: [noeudId: string]
@@ -219,7 +219,7 @@ const emit = defineEmits<{
                   </div>
                   <div class="flex justify-between items-center mt-2">
                     <span class="text-xs text-amber-600">{{ manchon.capacite_fibres }} fibres</span>
-                    <button @click="emit('voirSoudures', manchon.id, manchon.nom_reference ?? undefined)"
+                    <button @click="emit('voirSoudures', manchon.id, manchon.nom_reference ?? undefined, manchon.etat === 'ATTENTE')"
                             class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold py-1 px-2 rounded transition-colors">
                       🔍 Soudures
                     </button>

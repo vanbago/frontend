@@ -11,6 +11,7 @@ export function useInspection() {
   const manchonNomEnMatrice = ref<string | null>(null)
   const manchonIdEnMatrice = ref<string | null>(null)
   const chargementMatrice = ref(false)
+  const manchonEstEnAttente = ref(false)
 
   // — Filtres —
   const filtreCableSource = ref('')
@@ -29,12 +30,13 @@ export function useInspection() {
     manchonEnMatrice.value = null
     manchonNomEnMatrice.value = null
     manchonIdEnMatrice.value = null
+    manchonEstEnAttente.value = false
     modeSoudure.actif = false
     modeSoudure.cableSource = null
     modeSoudure.fibreSource = null
   }
 
-  const voirSoudures = async (manchonId: string, manchonNom?: string) => {
+  const voirSoudures = async (manchonId: string, manchonNom?: string, enAttente?: boolean) => {
     try {
       chargementMatrice.value = true
       afficherMatrice.value = true
@@ -42,7 +44,9 @@ export function useInspection() {
       manchonNomEnMatrice.value = manchonNom ?? manchonId
       const response = await AuthService.apiCall(`${BASE_URL}/api/manchons/${manchonId}/matrice/`)
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
-      manchonEnMatrice.value = await response.json()
+      const data: ContenuMatrice = await response.json()
+      manchonEstEnAttente.value = enAttente ?? data.cables.length === 0
+      manchonEnMatrice.value = data
     } catch (erreur) {
       console.error('❌ Échec chargement matrice soudures:', erreur)
       alert('Impossible de charger la matrice de soudures')
@@ -92,7 +96,7 @@ export function useInspection() {
       const response = await AuthService.apiCall(`${BASE_URL}/api/soudures/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fibre_entrante_id: fibreEntranteId, fibre_sortante_id: fibreSortanteId, statut: 'OK' })
+        body: JSON.stringify({ fibre_entrante_id: fibreEntranteId, fibre_sortante_id: fibreSortanteId, statut: 'CONTINU' })
       })
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
       annulerSoudure()
@@ -139,6 +143,7 @@ export function useInspection() {
 
   return {
     afficherMatrice, manchonEnMatrice, manchonNomEnMatrice, manchonIdEnMatrice, chargementMatrice,
+    manchonEstEnAttente,
     filtreCableSource, filtreEtat, modeSoudure,
     voirSoudures, voirSouduresNoeud, fermerMatrice,
     filtrerFibres, selectionnerFibre, annulerSoudure,

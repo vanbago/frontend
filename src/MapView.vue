@@ -56,7 +56,7 @@ const choisirCreation = (type: 'noeud' | 'cable') => {
 
 // ===== WIRING: actions depuis InspectionNoeud =====
 const onInspecterCable = (id: string) => cables.inspecterCable(id)
-const onVoirSoudures = (manchonId: string, manchonNom?: string) => inspection.voirSoudures(manchonId, manchonNom)
+const onVoirSoudures = (manchonId: string, manchonNom?: string, enAttente?: boolean) => inspection.voirSoudures(manchonId, manchonNom, enAttente)
 const onVoirSouduresNoeud = (noeudId: string, noeudNom?: string) => inspection.voirSouduresNoeud(noeudId, noeudNom)
 const onInstallerManchon = (noeudId: string) => alert(`Fonctionnalité à venir : Installer manchon dans le nœud ${noeudId}`)
 const onAjouterManchon = (noeudId: string) => {
@@ -402,7 +402,7 @@ onUnmounted(() => { map.value?.remove() })
               </div>
 
               <!-- Bannière manchon en attente -->
-              <div v-if="inspection.manchonEnMatrice.value?.mode === 'attente'"
+              <div v-if="inspection.manchonEstEnAttente.value"
                    class="mb-3 bg-orange-50 border border-orange-300 rounded-lg px-3 py-2">
                 <p class="text-xs text-orange-700 flex items-center gap-2">
                   <span>⏳</span>
