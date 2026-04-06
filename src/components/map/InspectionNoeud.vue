@@ -17,6 +17,7 @@ const emit = defineEmits<{
   startDrag: [event: MouseEvent, fenetre: NomFenetre]
   inspecterCable: [id: string]
   voirSoudures: [manchonId: string, manchonNom?: string]
+  voirSouduresNoeud: [noeudId: string, noeudNom?: string]
   installerManchon: [noeudId: string]
   ajouterManchon: [noeudId: string]
 }>()
@@ -147,7 +148,7 @@ const emit = defineEmits<{
             </div>
           </template>
 
-          <!-- CHAMBRE -->
+          <!-- CHAMBRE : câbles en transit + installer manchon -->
           <template v-else-if="noeud.type_noeud === 'CHAMBRE'">
             <div class="mb-4">
               <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
@@ -160,19 +161,13 @@ const emit = defineEmits<{
                      @click="emit('inspecterCable', cable.id)">
                   <div class="flex justify-between items-center">
                     <span class="font-semibold text-blue-800 text-sm">{{ cable.nom_code || 'Câble sans nom' }}</span>
-                    <div class="flex items-center gap-1">
-                      <span class="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded-full">↔ Transit</span>
-                      <span class="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">{{ cable.capacite_fibres }} FO</span>
-                    </div>
-                  </div>
-                  <div class="flex justify-between text-xs text-blue-600 mt-1">
-                    <span>{{ cable.technologie_transport || 'N/A' }}</span>
-                    <span>{{ formaterLongueur(cable.longueur_reelle_metres) }}</span>
+                    <span class="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">{{ cable.capacite_fibres }} FO</span>
                   </div>
                 </div>
               </div>
               <p v-else class="text-xs text-gray-400 italic">Aucun câble ne passe par cette chambre</p>
             </div>
+
             <div class="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-4 text-center">
               <p class="text-3xl mb-2">📭</p>
               <p class="text-sm text-gray-500 mb-3">Aucun manchon installé</p>
@@ -183,8 +178,8 @@ const emit = defineEmits<{
             </div>
           </template>
 
-          <!-- MANCHON -->
-          <template v-else-if="['MANCHON','MANCHON_ENTERRE','MANCHON_AERIEN'].includes(noeud.type_noeud)">
+          <!-- MANCHON (dans chambre) : câbles + manchons installés + bouton ajouter -->
+          <template v-else-if="noeud.type_noeud === 'MANCHON'">
             <div class="mb-4">
               <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
                 🔌 Câbles en transit
@@ -223,7 +218,7 @@ const emit = defineEmits<{
                     </span>
                   </div>
                   <div class="flex justify-between items-center mt-2">
-                    <span class="text-xs text-amber-600">{{ manchon.type_label }}</span>
+                    <span class="text-xs text-amber-600">{{ manchon.capacite_fibres }} fibres</span>
                     <button @click="emit('voirSoudures', manchon.id, manchon.nom_reference ?? undefined)"
                             class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold py-1 px-2 rounded transition-colors">
                       🔍 Soudures
@@ -237,6 +232,21 @@ const emit = defineEmits<{
             <button @click="emit('ajouterManchon', noeud.id)"
                     class="w-full bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs font-bold py-2 px-4 rounded border border-amber-300 transition-colors">
               ➕ Ajouter un manchon
+            </button>
+          </template>
+
+          <!-- MANCHON_ENTERRE / MANCHON_AERIEN : manchon autonome → matrice directe via nœud -->
+          <template v-else-if="['MANCHON_ENTERRE','MANCHON_AERIEN'].includes(noeud.type_noeud)">
+            <div class="bg-stone-50 rounded-lg p-3 mb-4 border border-stone-200">
+              <p class="text-xs text-stone-600 flex items-center gap-2">
+                <span>{{ noeud.type_noeud === 'MANCHON_ENTERRE' ? '🔽' : '🔼' }}</span>
+                Manchon autonome — la matrice de soudures est accessible via le bouton ci-dessous.
+              </p>
+            </div>
+
+            <button @click="emit('voirSouduresNoeud', noeud.id, noeud.nom_code ?? undefined)"
+                    class="w-full bg-stone-500 hover:bg-stone-600 text-white text-xs font-bold py-2 px-4 rounded transition-colors">
+              🔍 Voir la matrice de soudures complète
             </button>
           </template>
         </div>

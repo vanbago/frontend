@@ -23,16 +23,15 @@ export function useMap() {
 
     map.value = L.map('map', { center: centreCoordonnees, zoom: 13, zoomControl: true })
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
+    L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; OpenStreetMap contributors',
       maxZoom: 20
     }).addTo(map.value)
 
     L.circleMarker(centreCoordonnees, {
       color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.6, radius: 8
     }).addTo(map.value)
-      .bindPopup('<b class="text-gray-900">Nœud Optique Principal</b><br>Yaoundé')
+      .bindPopup('<b>Nœud Optique Principal</b><br>Yaoundé')
 
     map.value.on('click', (e: L.LeafletMouseEvent) => {
       const lat = e.latlng.lat.toFixed(6)
