@@ -198,7 +198,7 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     if (calqueCables) carte.removeLayer(calqueCables)
 
     calqueCables = L.geoJSON(donneesGeoJson, {
-      style: () => ({ color: '#3b82f6', weight: 4, opacity: 0.8 }),
+      style: () => ({ color: '#38bdf8', weight: 3, opacity: 0.9 }),
       onEachFeature: (feature, layer) => {
         const infos = feature.properties || {}
         const cableID = feature.id || infos.id || infos.url?.split('/').filter(Boolean).pop()
@@ -220,8 +220,8 @@ export function useCables(map: ShallowRef<L.Map | null>) {
         popupContent.appendChild(btn)
         layer.bindPopup(popupContent)
 
-        layer.on('mouseover', () => (layer as L.Path).setStyle({ weight: 6, opacity: 1 }))
-        layer.on('mouseout',  () => (layer as L.Path).setStyle({ weight: 4, opacity: 0.8 }))
+        layer.on('mouseover', () => (layer as L.Path).setStyle({ weight: 5, opacity: 1 }))
+        layer.on('mouseout',  () => (layer as L.Path).setStyle({ weight: 3, opacity: 0.9 }))
       }
     }).addTo(carte)
   }

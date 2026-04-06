@@ -56,6 +56,7 @@ const choisirCreation = (type: 'noeud' | 'cable') => {
 // ===== WIRING: actions depuis InspectionNoeud =====
 const onInspecterCable = (id: string) => cables.inspecterCable(id)
 const onVoirSoudures = (manchonId: string, manchonNom?: string) => inspection.voirSoudures(manchonId, manchonNom)
+const onVoirSouduresNoeud = (noeudId: string, noeudNom?: string) => inspection.voirSouduresNoeud(noeudId, noeudNom)
 const onInstallerManchon = (noeudId: string) => alert(`Fonctionnalité à venir : Installer manchon dans le nœud ${noeudId}`)
 const onAjouterManchon = (noeudId: string) => alert(`Ajouter manchon dans le nœud ${noeudId}`)
 
@@ -72,20 +73,21 @@ onUnmounted(() => { map.value?.remove() })
 
 
 <template>
-  <div class="flex flex-col h-screen w-full bg-gray-100 overflow-hidden font-sans">
+  <div class="flex flex-col h-screen w-full overflow-hidden font-sans" style="background:#1a1f2e">
 
     <!-- HEADER -->
-    <header class="bg-white shadow-sm border-b border-gray-300 h-14 flex items-center justify-between px-4 z-20 shrink-0">
+    <header class="h-14 flex items-center justify-between px-4 z-20 shrink-0 border-b"
+            style="background:#1e2433; border-color:#2d3448">
       <div class="flex items-center gap-4 flex-1">
         <div class="flex items-center gap-2 cursor-pointer shrink-0">
           <span class="text-2xl">🌍</span>
-          <span class="text-xl font-bold text-emerald-700 tracking-tight hidden sm:block">Optis_OTN</span>
+          <span class="text-xl font-bold tracking-tight hidden sm:block" style="color:#38bdf8">Optis_OTN</span>
         </div>
-        <div class="flex items-center bg-gray-50 rounded border border-gray-300 px-2 py-1 max-w-sm w-full">
-          <span class="text-gray-400 text-sm mr-2">🔍</span>
+        <div class="flex items-center rounded px-2 py-1 max-w-sm w-full border" style="background:#252c3d; border-color:#3a4257">
+          <span class="text-sm mr-2" style="color:#64748b">🔍</span>
           <input type="text" placeholder="Rechercher un BPEO, un câble..."
-                 class="bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400 w-full"/>
-          <button class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold py-1 px-3 rounded ml-2 transition-colors">Aller</button>
+                 class="bg-transparent border-none outline-none text-sm w-full" style="color:#cbd5e1" />
+          <button class="text-xs font-bold py-1 px-3 rounded ml-2 transition-colors" style="background:#38bdf8; color:#0f172a">Aller</button>
         </div>
       </div>
       <div class="flex items-center gap-2 shrink-0">
@@ -93,9 +95,9 @@ onUnmounted(() => { map.value?.remove() })
           <button class="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50">Éditer ▼</button>
           <router-link to="/inventaire" class="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50">📋 Inventaire</router-link>
         </nav>
-        <div class="w-px h-6 bg-gray-300 mx-1 hidden md:block"></div>
-        <span v-if="utilisateurNom" class="text-xs text-gray-500 hidden md:block">👤 {{ utilisateurNom }}</span>
-        <button @click="deconnecter" class="px-3 py-1 text-sm font-bold text-gray-600 hover:text-red-600 transition">Déconnexion</button>
+        <div class="w-px h-6 mx-1 hidden md:block" style="background:#3a4257"></div>
+        <span v-if="utilisateurNom" class="text-xs hidden md:block" style="color:#64748b">👤 {{ utilisateurNom }}</span>
+        <button @click="deconnecter" class="px-3 py-1 text-sm font-bold transition" style="color:#64748b" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'">Déconnexion</button>
       </div>
     </header>
 
@@ -108,16 +110,21 @@ onUnmounted(() => { map.value?.remove() })
       <LegendeMap />
 
       <!-- OUTILS CARTE (haut droite) -->
-      <div class="absolute top-4 right-4 z-[1000] bg-white/90 backdrop-blur-md rounded shadow flex flex-col gap-0.5 p-1 border border-white/50">
-        <button class="p-1.5 hover:bg-white rounded transition text-gray-700"><span class="text-sm">🗺️</span></button>
-        <button class="p-1.5 hover:bg-white rounded transition text-gray-700"><span class="text-sm">📏</span></button>
-        <div class="h-px w-full bg-gray-300 my-0.5"></div>
+      <div class="absolute top-4 right-4 z-[1000] rounded-xl shadow-xl flex flex-col gap-0.5 p-1.5 border"
+           style="background:#1e2433cc; backdrop-filter:blur(8px); border-color:#3a4257">
+        <button class="p-2 rounded-lg transition" style="color:#94a3b8" title="Couches">
+          <span class="text-sm">🗺️</span>
+        </button>
+        <button class="p-2 rounded-lg transition" style="color:#94a3b8" title="Mesure">
+          <span class="text-sm">📏</span>
+        </button>
+        <div class="h-px w-full my-0.5" style="background:#3a4257"></div>
 
         <!-- Bouton Créer -->
         <div class="relative">
           <button @click="ouvrirMenuCreation"
-                  class="p-1.5 hover:bg-emerald-50 rounded transition text-emerald-600" title="Créer...">
-            <span class="text-sm font-bold">➕</span>
+                  class="p-2 rounded-lg transition font-bold text-sm" style="background:#38bdf8; color:#0f172a" title="Créer...">
+            ＋
           </button>
           <transition
             enter-active-class="transition-all duration-200 ease-out"
@@ -128,26 +135,31 @@ onUnmounted(() => { map.value?.remove() })
             leave-to-class="opacity-0 scale-95 -translate-y-2"
           >
             <div v-if="menuCreationOuvert"
-                 class="absolute top-full mt-1 right-0 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden min-w-[160px] z-10">
+                 class="absolute top-full mt-2 right-0 rounded-xl shadow-2xl overflow-hidden min-w-[170px] z-10 border"
+                 style="background:#1e2433; border-color:#3a4257">
               <button @click="choisirCreation('noeud')"
-                      class="w-full px-4 py-3 text-left text-sm hover:bg-emerald-50 flex items-center gap-3 border-b border-gray-100">
+                      class="w-full px-4 py-3 text-left text-sm flex items-center gap-3 border-b transition"
+                      style="color:#cbd5e1; border-color:#2d3448"
+                      onmouseover="this.style.background='#252c3d'" onmouseout="this.style.background='transparent'">
                 <span class="text-lg">📍</span>
-                <span class="font-medium text-gray-700">Nouveau Nœud</span>
+                <span class="font-medium">Nouveau Nœud</span>
               </button>
               <button @click="choisirCreation('cable')"
-                      class="w-full px-4 py-3 text-left text-sm hover:bg-blue-50 flex items-center gap-3">
+                      class="w-full px-4 py-3 text-left text-sm flex items-center gap-3 transition"
+                      style="color:#cbd5e1"
+                      onmouseover="this.style.background='#252c3d'" onmouseout="this.style.background='transparent'">
                 <span class="text-lg">🔌</span>
-                <span class="font-medium text-gray-700">Nouveau Câble</span>
+                <span class="font-medium">Nouveau Câble</span>
               </button>
             </div>
           </transition>
         </div>
 
         <button @click="afficherDashboard = true"
-                class="p-1.5 hover:bg-purple-50 rounded transition text-purple-600" title="Performances Système">
+                class="p-2 rounded-lg transition" style="color:#a78bfa" title="Performances Système">
           <span class="text-sm">📊</span>
         </button>
-        <div class="h-px w-full bg-gray-300 my-0.5"></div>
+        <div class="h-px w-full my-0.5" style="background:#3a4257"></div>
       </div>
 
       <!-- INSPECTION CÂBLE -->
@@ -316,6 +328,7 @@ onUnmounted(() => { map.value?.remove() })
         @start-drag="demarrerDrag"
         @inspecter-cable="onInspecterCable"
         @voir-soudures="onVoirSoudures"
+        @voir-soudures-noeud="onVoirSouduresNoeud"
         @installer-manchon="onInstallerManchon"
         @ajouter-manchon="onAjouterManchon"
       />
@@ -458,18 +471,19 @@ onUnmounted(() => { map.value?.remove() })
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="afficherDashboard"
-             class="absolute z-[4000] bg-gray-100 rounded-xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden"
-             style="width: 450px; height: 600px;"
+             class="absolute z-[4000] rounded-xl shadow-2xl flex flex-col overflow-hidden border"
+             style="width: 450px; height: 600px; background:#1a1f2e; border-color:#3a4257"
              :style="{ left: fenetres.monitoring.x + 'px', top: fenetres.monitoring.y + 'px' }"
              @mousedown.stop @click.stop>
 
           <div @mousedown.stop.prevent="demarrerDrag($event, 'monitoring')"
-               class="bg-gray-800 px-4 py-2 cursor-move flex justify-between items-center select-none active:bg-gray-900">
-            <h3 class="text-white text-sm font-bold flex items-center gap-2">
-              <span class="animate-pulse text-emerald-400">●</span> Performances Système
+               class="px-4 py-2 cursor-move flex justify-between items-center select-none border-b"
+               style="background:#1e2433; border-color:#3a4257">
+            <h3 class="text-sm font-bold flex items-center gap-2" style="color:#cbd5e1">
+              <span class="animate-pulse" style="color:#34d399">●</span> Performances Système
             </h3>
             <button @mousedown.stop @click.stop="afficherDashboard = false"
-                    class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none p-1">&times;</button>
+                    class="text-xl font-bold leading-none p-1 transition" style="color:#64748b">&times;</button>
           </div>
 
           <div class="flex-1 overflow-y-auto p-2" @mousedown.stop>

@@ -52,6 +52,25 @@ export function useInspection() {
     }
   }
 
+  // Pour MANCHON_ENTERRE / MANCHON_AERIEN — l'endpoint est sur le nœud directement
+  const voirSouduresNoeud = async (noeudId: string, noeudNom?: string) => {
+    try {
+      chargementMatrice.value = true
+      afficherMatrice.value = true
+      manchonIdEnMatrice.value = noeudId
+      manchonNomEnMatrice.value = noeudNom ?? noeudId
+      const response = await AuthService.apiCall(`${BASE_URL}/api/noeuds/${noeudId}/matrice/`)
+      if (!response.ok) throw new Error(`Erreur ${response.status}`)
+      manchonEnMatrice.value = await response.json()
+    } catch (erreur) {
+      console.error('❌ Échec chargement matrice nœud:', erreur)
+      alert('Impossible de charger la matrice de soudures')
+      fermerMatrice()
+    } finally {
+      chargementMatrice.value = false
+    }
+  }
+
   // — Filtrage —
   const filtrerFibres = (cable: CableMatrice) => {
     let fibres = cable.fibres
@@ -121,7 +140,7 @@ export function useInspection() {
   return {
     afficherMatrice, manchonEnMatrice, manchonNomEnMatrice, manchonIdEnMatrice, chargementMatrice,
     filtreCableSource, filtreEtat, modeSoudure,
-    voirSoudures, fermerMatrice,
+    voirSoudures, voirSouduresNoeud, fermerMatrice,
     filtrerFibres, selectionnerFibre, annulerSoudure,
     supprimerSoudure, souderTout1a1, dessouderTout,
   }
