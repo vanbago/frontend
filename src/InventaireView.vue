@@ -125,10 +125,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen font-sans text-xs" style="background:#eae7d6; color:#3a3d2e;">
+  <div class="h-screen overflow-y-auto font-sans text-xs" style="background:#eae7d6; color:#3a3d2e;">
 
     <!-- EN-TÊTE -->
-    <header class="px-5 py-3 flex items-center justify-between border-b" style="background:#4a5240; border-color:#3a3d2e;">
+    <header class="sticky top-0 z-10 px-5 py-3 flex items-center justify-between border-b" style="background:#4a5240; border-color:#3a3d2e;">
       <div class="flex items-center gap-3">
         <router-link to="/" class="transition text-[11px]" style="color:#c8c4a0;" >
           ← Retour à la carte
