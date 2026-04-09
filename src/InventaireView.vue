@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useReseauStore } from './stores/reseau'
+import { couleurParCapacite } from './composables/useCables'
 
 const store = useReseauStore()
 
@@ -19,6 +20,19 @@ const filtreStatutCable = ref('')
 
 const rechercheNoeud = ref('')
 const filtreTypeNoeud = ref('')
+
+// ============================================================
+// PAGINATION
+// ============================================================
+
+const PAGE_SIZE = 50
+
+const pageCables = ref(1)
+const pageNoeuds = ref(1)
+
+// Remet la page à 1 quand les filtres changent
+watch([rechercheCable, filtreStatutCable], () => { pageCables.value = 1 })
+watch([rechercheNoeud, filtreTypeNoeud], () => { pageNoeuds.value = 1 })
 
 // ============================================================
 // DONNÉES FILTRÉES
@@ -43,6 +57,19 @@ const noeudsFiltres = computed(() => {
     return correspondRecherche && correspondType
   })
 })
+
+const cablesPage = computed(() => {
+  const debut = (pageCables.value - 1) * PAGE_SIZE
+  return cablesFiltres.value.slice(debut, debut + PAGE_SIZE)
+})
+
+const noeudPage = computed(() => {
+  const debut = (pageNoeuds.value - 1) * PAGE_SIZE
+  return noeudsFiltres.value.slice(debut, debut + PAGE_SIZE)
+})
+
+const totalPagesCables = computed(() => Math.max(1, Math.ceil(cablesFiltres.value.length / PAGE_SIZE)))
+const totalPagesNoeuds = computed(() => Math.max(1, Math.ceil(noeudsFiltres.value.length / PAGE_SIZE)))
 
 // ============================================================
 // HELPERS D'AFFICHAGE
@@ -98,20 +125,21 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 font-sans">
+  <div class="min-h-screen font-sans text-xs" style="background:#eae7d6; color:#3a3d2e;">
 
     <!-- EN-TÊTE -->
-    <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+    <header class="px-5 py-3 flex items-center justify-between border-b" style="background:#4a5240; border-color:#3a3d2e;">
       <div class="flex items-center gap-3">
-        <router-link to="/" class="text-gray-400 hover:text-gray-700 transition text-sm">
+        <router-link to="/" class="transition text-[11px]" style="color:#c8c4a0;" >
           ← Retour à la carte
         </router-link>
-        <span class="text-gray-300">|</span>
-        <h1 class="text-lg font-bold text-gray-800">📋 Inventaire du Réseau</h1>
+        <span style="color:#6b7c4a;">|</span>
+        <h1 class="text-sm font-bold" style="color:#eae7d6;">📋 Inventaire du Réseau</h1>
       </div>
       <button
         @click="store.chargerInfrastructure()"
-        class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50 transition"
+        class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded transition"
+        style="background:#5c6b3a; color:#eae7d6; border:1px solid #6b7c4a;"
         :disabled="store.chargementCables || store.chargementNoeuds"
       >
         <span :class="{ 'animate-spin': store.chargementCables || store.chargementNoeuds }">🔄</span>
@@ -119,67 +147,69 @@ onMounted(async () => {
       </button>
     </header>
 
-    <main class="p-6 max-w-7xl mx-auto">
+    <main class="p-4 max-w-7xl mx-auto">
 
       <!-- STATISTIQUES -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-xl border border-gray-200 p-4">
-          <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Câbles</p>
-          <p class="text-3xl font-black text-blue-600">{{ store.totalCables }}</p>
-          <p class="text-xs text-gray-400 mt-1">sections enregistrées</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div class="rounded-lg border p-3" style="background:#f5f2e4; border-color:#b8b49a;">
+          <p class="text-[10px] font-bold uppercase tracking-wide mb-0.5" style="color:#6b7c4a;">Câbles</p>
+          <p class="text-2xl font-black" style="color:#4a5240;">{{ store.totalCables }}</p>
+          <p class="text-[10px]" style="color:#8a8a72;">sections enregistrées</p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-200 p-4">
-          <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nœuds</p>
-          <p class="text-3xl font-black text-emerald-600">{{ store.totalNoeuds }}</p>
-          <p class="text-xs text-gray-400 mt-1">points d'infrastructure</p>
+        <div class="rounded-lg border p-3" style="background:#f5f2e4; border-color:#b8b49a;">
+          <p class="text-[10px] font-bold uppercase tracking-wide mb-0.5" style="color:#6b7c4a;">Nœuds</p>
+          <p class="text-2xl font-black" style="color:#4a5240;">{{ store.totalNoeuds }}</p>
+          <p class="text-[10px]" style="color:#8a8a72;">points d'infrastructure</p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-200 p-4">
-          <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Capacité</p>
-          <p class="text-3xl font-black text-violet-600">{{ store.capaciteTotale.toLocaleString() }}</p>
-          <p class="text-xs text-gray-400 mt-1">fibres au total</p>
+        <div class="rounded-lg border p-3" style="background:#f5f2e4; border-color:#b8b49a;">
+          <p class="text-[10px] font-bold uppercase tracking-wide mb-0.5" style="color:#6b7c4a;">Capacité</p>
+          <p class="text-2xl font-black" style="color:#4a5240;">{{ store.capaciteTotale.toLocaleString() }}</p>
+          <p class="text-[10px]" style="color:#8a8a72;">fibres au total</p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-200 p-4">
-          <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Centres</p>
-          <p class="text-3xl font-black text-red-600">{{ store.noeudsByType['CENTRE']?.length || 0 }}</p>
-          <p class="text-xs text-gray-400 mt-1">sites de transmission</p>
+        <div class="rounded-lg border p-3" style="background:#f5f2e4; border-color:#b8b49a;">
+          <p class="text-[10px] font-bold uppercase tracking-wide mb-0.5" style="color:#6b7c4a;">Centres</p>
+          <p class="text-2xl font-black" style="color:#4a5240;">{{ store.noeudsByType['CENTRE']?.length || 0 }}</p>
+          <p class="text-[10px]" style="color:#8a8a72;">sites de transmission</p>
         </div>
       </div>
 
       <!-- ONGLETS -->
-      <div class="flex gap-1 mb-4 border-b border-gray-200">
+      <div class="flex gap-1 mb-3 border-b" style="border-color:#b8b49a;">
         <button
           @click="ongletActif = 'cables'"
-          class="px-4 py-2 text-sm font-medium transition border-b-2 -mb-px"
-          :class="ongletActif === 'cables'
-            ? 'border-blue-500 text-blue-600'
-            : 'border-transparent text-gray-500 hover:text-gray-700'"
+          class="px-3 py-1.5 text-xs font-medium transition border-b-2 -mb-px"
+          :style="ongletActif === 'cables'
+            ? 'border-color:#6b7c4a; color:#4a5240;'
+            : 'border-color:transparent; color:#8a8a72;'"
         >
           🔌 Câbles
-          <span class="ml-1.5 bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">
+          <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full" style="background:#d4cfb0; color:#4a5240;">
             {{ cablesFiltres.length }}
           </span>
         </button>
         <button
           @click="ongletActif = 'noeuds'"
-          class="px-4 py-2 text-sm font-medium transition border-b-2 -mb-px"
-          :class="ongletActif === 'noeuds'
-            ? 'border-emerald-500 text-emerald-600'
-            : 'border-transparent text-gray-500 hover:text-gray-700'"
+          class="px-3 py-1.5 text-xs font-medium transition border-b-2 -mb-px"
+          :style="ongletActif === 'noeuds'
+            ? 'border-color:#6b7c4a; color:#4a5240;'
+            : 'border-color:transparent; color:#8a8a72;'"
         >
           🖧 Nœuds
-          <span class="ml-1.5 bg-emerald-100 text-emerald-700 text-xs px-1.5 py-0.5 rounded-full">
+          <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full" style="background:#d4cfb0; color:#4a5240;">
             {{ noeudsFiltres.length }}
           </span>
         </button>
       </div>
 
       <!-- TABLEAU CÂBLES -->
-      <div v-if="ongletActif === 'cables'" class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div class="p-4 border-b border-gray-100 flex flex-wrap gap-3">
+      <div v-if="ongletActif === 'cables'" class="rounded-lg border overflow-hidden" style="background:#f5f2e4; border-color:#b8b49a;">
+        <div class="p-3 border-b flex flex-wrap gap-2" style="border-color:#d4cfb0;">
           <input v-model="rechercheCable" type="text" placeholder="🔍 Rechercher un câble..."
-                 class="flex-1 min-w-[200px] text-sm px-3 py-1.5 border border-gray-300 rounded-lg outline-none focus:border-blue-400"/>
+                 class="flex-1 min-w-[180px] text-xs px-2.5 py-1.5 rounded-md outline-none"
+                 style="border:1px solid #b8b49a; background:#eae7d6; color:#3a3d2e;"/>
           <select v-model="filtreStatutCable"
-                  class="text-sm px-3 py-1.5 border border-gray-300 rounded-lg outline-none focus:border-blue-400">
+                  class="text-xs px-2.5 py-1.5 rounded-md outline-none"
+                  style="border:1px solid #b8b49a; background:#eae7d6; color:#3a3d2e;">
             <option value="">Tous les statuts</option>
             <option value="EN_SERVICE">En service</option>
             <option value="PROJET">En projet</option>
@@ -187,52 +217,72 @@ onMounted(async () => {
           </select>
         </div>
 
-        <div v-if="store.chargementCables" class="py-16 text-center text-gray-400">
-          <div class="animate-spin w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full mx-auto mb-3"></div>
+        <div v-if="store.chargementCables" class="py-12 text-center" style="color:#8a8a72;">
+          <div class="animate-spin w-7 h-7 border-4 border-t-transparent rounded-full mx-auto mb-2" style="border-color:#6b7c4a; border-top-color:transparent;"></div>
           Chargement des câbles...
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-200">
+          <table class="w-full">
+            <thead class="border-b" style="background:#d4cfb0; border-color:#b8b49a;">
               <tr>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Nom / Code</th>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Capacité</th>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Longueur</th>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Technologie</th>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Statut</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">Nom / Code</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">Capacité</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">Longueur</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">Technologie</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">Statut</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="cable in cablesFiltres" :key="cable.id" class="hover:bg-gray-50 transition-colors">
-                <td class="px-4 py-3 font-medium text-gray-800">{{ cable.nom_code || '—' }}</td>
-                <td class="px-4 py-3 text-gray-600">{{ cable.capacite_fibres ?? '—' }} FO</td>
-                <td class="px-4 py-3 text-gray-600">{{ formaterLongueur(cable.longueur_reelle_metres) }}</td>
-                <td class="px-4 py-3 text-gray-600">{{ cable.technologie_transport || '—' }}</td>
-                <td class="px-4 py-3">
-                  <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="badgeStatutCable(cable.statut_physique)">
+            <tbody>
+              <tr v-for="cable in cablesPage" :key="cable.id"
+                  class="border-b transition-colors hover:brightness-95"
+                  style="border-color:#dedad0;">
+                <td class="px-3 py-2 font-medium" style="color:#3a3d2e;">{{ cable.nom_code || '—' }}</td>
+                <td class="px-3 py-2">
+                  <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold" :style="{ background: couleurParCapacite(cable.capacite_fibres) + '33', color: couleurParCapacite(cable.capacite_fibres), border: '1px solid ' + couleurParCapacite(cable.capacite_fibres) + '88' }">
+                    {{ cable.capacite_fibres ?? '—' }} FO
+                  </span>
+                </td>
+                <td class="px-3 py-2" style="color:#5c5c48;">{{ formaterLongueur(cable.longueur_reelle_metres) }}</td>
+                <td class="px-3 py-2" style="color:#5c5c48;">{{ cable.technologie_transport || '—' }}</td>
+                <td class="px-3 py-2">
+                  <span class="px-1.5 py-0.5 rounded-full text-[10px] font-medium" :class="badgeStatutCable(cable.statut_physique)">
                     {{ cable.statut_physique || 'N/A' }}
                   </span>
                 </td>
               </tr>
               <tr v-if="cablesFiltres.length === 0">
-                <td colspan="5" class="px-4 py-12 text-center text-gray-400">
-                  <p class="text-3xl mb-2">📭</p>
+                <td colspan="5" class="px-3 py-10 text-center" style="color:#8a8a72;">
+                  <p class="text-2xl mb-1">📭</p>
                   <p>Aucun câble ne correspond aux filtres</p>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+        <!-- Pagination câbles -->
+        <div v-if="totalPagesCables > 1" class="flex items-center justify-between px-3 py-2 border-t text-[11px]" style="border-color:#d4cfb0; color:#6b7c4a;">
+          <span>Page {{ pageCables }} / {{ totalPagesCables }} — {{ cablesFiltres.length }} câbles</span>
+          <div class="flex gap-1">
+            <button @click="pageCables--" :disabled="pageCables <= 1"
+              class="px-2.5 py-0.5 rounded disabled:opacity-40"
+              style="border:1px solid #b8b49a; background:#dedad0;">‹</button>
+            <button @click="pageCables++" :disabled="pageCables >= totalPagesCables"
+              class="px-2.5 py-0.5 rounded disabled:opacity-40"
+              style="border:1px solid #b8b49a; background:#dedad0;">›</button>
+          </div>
+        </div>
       </div>
 
       <!-- TABLEAU NŒUDS -->
-      <div v-if="ongletActif === 'noeuds'" class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div class="p-4 border-b border-gray-100 flex flex-wrap gap-3">
+      <div v-if="ongletActif === 'noeuds'" class="rounded-lg border overflow-hidden" style="background:#f5f2e4; border-color:#b8b49a;">
+        <div class="p-3 border-b flex flex-wrap gap-2" style="border-color:#d4cfb0;">
           <input v-model="rechercheNoeud" type="text" placeholder="🔍 Rechercher un nœud..."
-                 class="flex-1 min-w-[200px] text-sm px-3 py-1.5 border border-gray-300 rounded-lg outline-none focus:border-emerald-400"/>
+                 class="flex-1 min-w-[180px] text-xs px-2.5 py-1.5 rounded-md outline-none"
+                 style="border:1px solid #b8b49a; background:#eae7d6; color:#3a3d2e;"/>
           <select v-model="filtreTypeNoeud"
-                  class="text-sm px-3 py-1.5 border border-gray-300 rounded-lg outline-none focus:border-emerald-400">
+                  class="text-xs px-2.5 py-1.5 rounded-md outline-none"
+                  style="border:1px solid #b8b49a; background:#eae7d6; color:#3a3d2e;">
             <option value="">Tous les types</option>
             <option value="CENTRE">Centre de Transmission</option>
             <option value="CHAMBRE">Chambre de Tirage</option>
@@ -245,45 +295,59 @@ onMounted(async () => {
           </select>
         </div>
 
-        <div v-if="store.chargementNoeuds" class="py-16 text-center text-gray-400">
-          <div class="animate-spin w-8 h-8 border-4 border-emerald-400 border-t-transparent rounded-full mx-auto mb-3"></div>
+        <div v-if="store.chargementNoeuds" class="py-12 text-center" style="color:#8a8a72;">
+          <div class="animate-spin w-7 h-7 border-4 border-t-transparent rounded-full mx-auto mb-2" style="border-color:#6b7c4a; border-top-color:transparent;"></div>
           Chargement des nœuds...
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-200">
+          <table class="w-full">
+            <thead class="border-b" style="background:#d4cfb0; border-color:#b8b49a;">
               <tr>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Nom / Code</th>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Type</th>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">État Opérationnel</th>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Énergie</th>
-                <th class="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Dernière modif.</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">Nom / Code</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">Type</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">État Opérationnel</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">Énergie</th>
+                <th class="text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wide" style="color:#5c6b3a;">Dernière modif.</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="noeud in noeudsFiltres" :key="noeud.id" class="hover:bg-gray-50 transition-colors">
-                <td class="px-4 py-3 font-medium text-gray-800 flex items-center gap-2">
+            <tbody>
+              <tr v-for="noeud in noeudPage" :key="noeud.id"
+                  class="border-b transition-colors hover:brightness-95"
+                  style="border-color:#dedad0;">
+                <td class="px-3 py-2 font-medium flex items-center gap-1.5" style="color:#3a3d2e;">
                   <span>{{ iconeNoeud(noeud.type_noeud) }}</span>
                   {{ noeud.nom_code || '—' }}
                 </td>
-                <td class="px-4 py-3">
-                  <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="badgeTypeNoeud(noeud.type_noeud)">
+                <td class="px-3 py-2">
+                  <span class="px-1.5 py-0.5 rounded-full text-[10px] font-medium" :class="badgeTypeNoeud(noeud.type_noeud)">
                     {{ noeud.type_noeud_label || noeud.type_noeud }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-gray-600">{{ noeud.statut_operationnel || '—' }}</td>
-                <td class="px-4 py-3 text-gray-600">{{ noeud.statut_energie || '—' }}</td>
-                <td class="px-4 py-3 text-gray-400 text-xs">{{ noeud.date_modification?.split('T')[0] || '—' }}</td>
+                <td class="px-3 py-2" style="color:#5c5c48;">{{ noeud.statut_operationnel || '—' }}</td>
+                <td class="px-3 py-2" style="color:#5c5c48;">{{ noeud.statut_energie || '—' }}</td>
+                <td class="px-3 py-2 text-[10px]" style="color:#8a8a72;">{{ noeud.date_modification?.split('T')[0] || '—' }}</td>
               </tr>
               <tr v-if="noeudsFiltres.length === 0">
-                <td colspan="5" class="px-4 py-12 text-center text-gray-400">
-                  <p class="text-3xl mb-2">📭</p>
+                <td colspan="5" class="px-3 py-10 text-center" style="color:#8a8a72;">
+                  <p class="text-2xl mb-1">📭</p>
                   <p>Aucun nœud ne correspond aux filtres</p>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+        <!-- Pagination nœuds -->
+        <div v-if="totalPagesNoeuds > 1" class="flex items-center justify-between px-3 py-2 border-t text-[11px]" style="border-color:#d4cfb0; color:#6b7c4a;">
+          <span>Page {{ pageNoeuds }} / {{ totalPagesNoeuds }} — {{ noeudsFiltres.length }} nœuds</span>
+          <div class="flex gap-1">
+            <button @click="pageNoeuds--" :disabled="pageNoeuds <= 1"
+              class="px-2.5 py-0.5 rounded disabled:opacity-40"
+              style="border:1px solid #b8b49a; background:#dedad0;">‹</button>
+            <button @click="pageNoeuds++" :disabled="pageNoeuds >= totalPagesNoeuds"
+              class="px-2.5 py-0.5 rounded disabled:opacity-40"
+              style="border:1px solid #b8b49a; background:#dedad0;">›</button>
+          </div>
         </div>
       </div>
 
