@@ -47,6 +47,26 @@ export const CATALOGUE_NORMES: Record<string, string[]> = {
 }
 
 // =====================================================
+// COULEUR PAR CAPACITÉ (câbles sur la carte)
+// =====================================================
+
+export const PALETTE_CAPACITE: { max: number; couleur: string; label: string }[] = [
+  { max: 6,   couleur: '#94a3b8', label: '≤ 6 FO' },
+  { max: 12,  couleur: '#22d3ee', label: '≤ 12 FO' },
+  { max: 24,  couleur: '#84cc16', label: '≤ 24 FO' },
+  { max: 48,  couleur: '#f59e0b', label: '≤ 48 FO' },
+  { max: 72,  couleur: '#f97316', label: '≤ 72 FO' },
+  { max: 96,  couleur: '#ef4444', label: '≤ 96 FO' },
+  { max: 144, couleur: '#dc2626', label: '≤ 144 FO' },
+  { max: Infinity, couleur: '#a855f7', label: '> 144 FO' },
+]
+
+export const couleurParCapacite = (capacite: number | null | undefined): string => {
+  if (!capacite) return PALETTE_CAPACITE[0].couleur
+  return (PALETTE_CAPACITE.find(p => capacite <= p.max) ?? PALETTE_CAPACITE[PALETTE_CAPACITE.length - 1]).couleur
+}
+
+// =====================================================
 // UTILITAIRES (exportés pour les composants)
 // =====================================================
 
@@ -198,7 +218,11 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     if (calqueCables) carte.removeLayer(calqueCables)
 
     calqueCables = L.geoJSON(donneesGeoJson, {
-      style: () => ({ color: '#38bdf8', weight: 3, opacity: 0.9 }),
+      style: (feature) => ({
+        color: couleurParCapacite(feature?.properties?.capacite_fibres),
+        weight: 3,
+        opacity: 0.9,
+      }),
       onEachFeature: (feature, layer) => {
         const infos = feature.properties || {}
         const cableID = feature.id || infos.id || infos.url?.split('/').filter(Boolean).pop()
@@ -220,8 +244,9 @@ export function useCables(map: ShallowRef<L.Map | null>) {
         popupContent.appendChild(btn)
         layer.bindPopup(popupContent)
 
-        layer.on('mouseover', () => (layer as L.Path).setStyle({ weight: 5, opacity: 1 }))
-        layer.on('mouseout',  () => (layer as L.Path).setStyle({ weight: 3, opacity: 0.9 }))
+        const coul = couleurParCapacite(infos.capacite_fibres)
+        layer.on('mouseover', () => (layer as L.Path).setStyle({ weight: 6, opacity: 1, color: coul }))
+        layer.on('mouseout',  () => (layer as L.Path).setStyle({ weight: 3, opacity: 0.9, color: coul }))
       }
     }).addTo(carte)
   }
