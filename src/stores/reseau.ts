@@ -79,23 +79,49 @@ export const useReseauStore = defineStore('reseau', () => {
   // ACTIONS
   // ----------------------------------------------------------
 
+  /**
+   * Charge toutes les pages d'un endpoint paginé DRF et retourne
+   * un GeoJSON FeatureCollection fusionné avec toutes les features.
+   */
+  const chargerToutesLesPages = async (urlDepart: string): Promise<any[]> => {
+    const toutesLesFeatures: any[] = []
+    let urlCourante: string | null = urlDepart
+
+    while (urlCourante) {
+      const reponse = await AuthService.apiCall(urlCourante)
+      if (!reponse.ok) throw new Error(`Erreur ${reponse.status}`)
+
+      const data = await reponse.json()
+
+      // Cas paginé : { count, next, previous, results: FeatureCollection }
+      if (data.results?.type === 'FeatureCollection') {
+        toutesLesFeatures.push(...data.results.features)
+        urlCourante = data.next ?? null
+      // Cas paginé : { count, next, previous, results: Feature[] }
+      } else if (Array.isArray(data.results)) {
+        toutesLesFeatures.push(...data.results)
+        urlCourante = data.next ?? null
+      // Cas non paginé : FeatureCollection directe
+      } else if (data.type === 'FeatureCollection') {
+        toutesLesFeatures.push(...data.features)
+        urlCourante = null
+      } else {
+        break
+      }
+    }
+
+    return toutesLesFeatures
+  }
+
   const chargerCables = async () => {
     try {
       chargementCables.value = true
       erreurCables.value = null
 
-      const reponse = await AuthService.apiCall(`${BASE_URL}/api/cables/`)
-      if (!reponse.ok) throw new Error(`Erreur ${reponse.status}`)
+      const features = await chargerToutesLesPages(`${BASE_URL}/api/cables/`)
 
-      const data = await reponse.json()
-
-      if (data.results?.type === 'FeatureCollection') {
-        geoJsonCables.value = data.results
-        cables.value = data.results.features.map((f: any) => ({ id: f.id, ...f.properties }))
-      } else if (data.type === 'FeatureCollection') {
-        geoJsonCables.value = data
-        cables.value = data.features.map((f: any) => ({ id: f.id, ...f.properties }))
-      }
+      geoJsonCables.value = { type: 'FeatureCollection', features }
+      cables.value = features.map((f: any) => ({ id: f.id, ...f.properties }))
 
     } catch (e: any) {
       erreurCables.value = e.message
@@ -110,18 +136,10 @@ export const useReseauStore = defineStore('reseau', () => {
       chargementNoeuds.value = true
       erreurNoeuds.value = null
 
-      const reponse = await AuthService.apiCall(`${BASE_URL}/api/noeuds/`)
-      if (!reponse.ok) throw new Error(`Erreur ${reponse.status}`)
+      const features = await chargerToutesLesPages(`${BASE_URL}/api/noeuds/`)
 
-      const data = await reponse.json()
-
-      if (data.results?.type === 'FeatureCollection') {
-        geoJsonNoeuds.value = data.results
-        noeuds.value = data.results.features.map((f: any) => ({ id: f.id, ...f.properties }))
-      } else if (data.type === 'FeatureCollection') {
-        geoJsonNoeuds.value = data
-        noeuds.value = data.features.map((f: any) => ({ id: f.id, ...f.properties }))
-      }
+      geoJsonNoeuds.value = { type: 'FeatureCollection', features }
+      noeuds.value = features.map((f: any) => ({ id: f.id, ...f.properties }))
 
     } catch (e: any) {
       erreurNoeuds.value = e.message
