@@ -20,6 +20,8 @@ const emit = defineEmits<{
   voirSouduresNoeud: [noeudId: string, noeudNom?: string]
   installerManchon: [noeudId: string]
   ajouterManchon: [noeudId: string]
+  modifierNoeud: [id: string]
+  supprimerNoeud: [id: string, nom: string]
 }>()
 </script>
 
@@ -250,6 +252,20 @@ const emit = defineEmits<{
             </button>
           </template>
         </div>
+      </div>
+
+      <!-- Actions -->
+      <div v-if="noeud && !chargement" class="p-3 border-t border-gray-200 bg-gray-50 flex gap-2" @mousedown.stop>
+        <button @mousedown.stop @click.stop="emit('modifierNoeud', noeud.id)"
+                class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
+                       text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100">
+          ✏️ Modifier
+        </button>
+        <button @mousedown.stop @click.stop="emit('supprimerNoeud', noeud.id, noeud.nom_code ?? noeud.id)"
+                class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
+                       text-red-700 bg-red-50 border-red-200 hover:bg-red-100">
+          🗑 Supprimer
+        </button>
       </div>
     </div>
   </transition>

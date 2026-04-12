@@ -3,6 +3,7 @@ import type { NomFenetre } from '../../composables/useDrag'
 
 defineProps<{
   visible: boolean
+  estEdition: boolean
   position: { x: number; y: number }
   formulaire: {
     nom_code: string
@@ -42,7 +43,8 @@ const emit = defineEmits<{
       <div @mousedown="emit('startDrag', $event, 'creation')"
            class="bg-gray-50 px-4 py-3 border-b border-gray-200 cursor-move flex justify-between items-center select-none active:bg-gray-100">
         <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
-          <span class="text-emerald-600">➕</span> Nouveau Nœud
+          <span>{{ estEdition ? '✏️' : '➕' }}</span>
+          {{ estEdition ? 'Modifier le Nœud' : 'Nouveau Nœud' }}
         </h3>
         <button @mousedown.stop @click="emit('close')"
                 class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none">&times;</button>
@@ -143,7 +145,7 @@ const emit = defineEmits<{
         </button>
         <button @click="emit('save')"
                 class="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded hover:bg-emerald-700 shadow-sm">
-          Créer Nœud
+          {{ estEdition ? 'Enregistrer' : 'Créer Nœud' }}
         </button>
       </div>
     </div>

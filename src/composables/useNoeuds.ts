@@ -220,15 +220,62 @@ const fermerPopupAjouterManchon = () => {
   }
 
   // — Panneau nœud —
-  const ouvrirPanneau = () => { panneauOuvert.value = true }
+  const noeudEnEditionId = ref<string | null>(null)
+
+  const ouvrirPanneau = () => {
+    noeudEnEditionId.value = null
+    panneauOuvert.value = true
+  }
 
   const fermerPanneau = () => {
     panneauOuvert.value = false
+    noeudEnEditionId.value = null
     formulaireNoeud.nom_code = ''
+    formulaireNoeud.type_noeud = 'MANCHON'
     formulaireNoeud.latitude = ''
     formulaireNoeud.longitude = ''
+    formulaireNoeud.statut_operationnel = 'EN SERVICE'
+    formulaireNoeud.statut_energie = 'PASSIF'
     formulaireNoeud.est_frontiere = false
     formulaireNoeud.centre_partenaire_id = ''
+  }
+
+  const ouvrirEditionNoeud = async (noeudId: string) => {
+    try {
+      noeudEnEditionId.value = noeudId
+      const rep = await AuthService.apiCall(`${BASE_URL}/api/noeuds/${noeudId}/`)
+      if (!rep.ok) throw new Error(`Erreur ${rep.status}`)
+      const data = await rep.json()
+      // DRF GeoJSON : { type: Feature, geometry, properties } ou objet plat
+      const props = data.properties ?? data
+      const coords = data.geometry?.coordinates // [lng, lat]
+      formulaireNoeud.nom_code            = props.nom_code ?? ''
+      formulaireNoeud.type_noeud          = props.type_noeud ?? 'MANCHON'
+      formulaireNoeud.statut_operationnel = props.statut_operationnel ?? 'EN SERVICE'
+      formulaireNoeud.statut_energie      = props.statut_energie ?? 'PASSIF'
+      formulaireNoeud.est_frontiere       = props.est_frontiere ?? false
+      formulaireNoeud.centre_partenaire_id = props.centre_partenaire_id ?? ''
+      formulaireNoeud.latitude            = coords ? String(coords[1]) : ''
+      formulaireNoeud.longitude           = coords ? String(coords[0]) : ''
+      panneauOuvert.value = true
+    } catch (erreur) {
+      console.error('❌ Échec chargement nœud pour édition:', erreur)
+      alert('Impossible de charger les données du nœud.')
+      noeudEnEditionId.value = null
+    }
+  }
+
+  const supprimerNoeud = async (noeudId: string, nomNoeud: string, onSuccess: () => void) => {
+    if (!confirm(`Supprimer définitivement le nœud « ${nomNoeud} » ?\nCette action est irréversible.`)) return
+    try {
+      const response = await AuthService.apiCall(`${BASE_URL}/api/noeuds/${noeudId}/`, { method: 'DELETE' })
+      if (!response.ok) throw new Error(`Erreur ${response.status}`)
+      fermerInspectionNoeud()
+      onSuccess()
+    } catch (erreur) {
+      console.error('❌ Échec suppression nœud:', erreur)
+      alert('Impossible de supprimer le nœud. Vérifiez la console F12.')
+    }
   }
 
   const sauvegarderNouveauNoeud = async (onSuccess: () => void) => {
@@ -248,8 +295,13 @@ const fermerPopupAjouterManchon = () => {
         payload.centre_partenaire_id = formulaireNoeud.centre_partenaire_id
       }
 
-      const reponse = await AuthService.apiCall(`${BASE_URL}/api/noeuds/`, {
-        method: 'POST',
+      const estEdition = !!noeudEnEditionId.value
+      const url = estEdition
+        ? `${BASE_URL}/api/noeuds/${noeudEnEditionId.value}/`
+        : `${BASE_URL}/api/noeuds/`
+
+      const reponse = await AuthService.apiCall(url, {
+        method: estEdition ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
@@ -260,10 +312,12 @@ const fermerPopupAjouterManchon = () => {
         throw new Error(`Refus du serveur: ${reponse.status}`)
       }
 
-      alert(`L'équipement ${formulaireNoeud.nom_code} a été ancré sur le réseau !`)
+      alert(estEdition
+        ? `Le nœud ${formulaireNoeud.nom_code} a été mis à jour !`
+        : `L'équipement ${formulaireNoeud.nom_code} a été ancré sur le réseau !`)
       fermerPanneau()
 
-      if (map.value && !isNaN(lat) && !isNaN(lng)) {
+      if (!estEdition && map.value && !isNaN(lat) && !isNaN(lng)) {
         const marqueur = L.circleMarker([lat, lng], {
           color: '#ffffff', weight: 3, fillColor: '#f59e0b', fillOpacity: 1, radius: 10
         }).addTo(map.value)
@@ -281,7 +335,7 @@ const fermerPopupAjouterManchon = () => {
       onSuccess()
     } catch (erreur) {
       console.error("❌ Échec sauvegarde nœud:", erreur)
-      alert("Erreur lors de la création du nœud. Vérifiez la console F12.")
+      alert("Erreur lors de la sauvegarde du nœud. Vérifiez la console F12.")
     }
   }
 
@@ -295,7 +349,8 @@ const fermerPopupAjouterManchon = () => {
     // fonctions
     dessinerNoeuds, inspecterNoeud, fermerInspectionNoeud,
     chargerCentres,
-    ouvrirPanneau, fermerPanneau, sauvegarderNouveauNoeud,
+    noeudEnEditionId,
+    ouvrirPanneau, ouvrirEditionNoeud, fermerPanneau, sauvegarderNouveauNoeud, supprimerNoeud,
     popupAjouterManchonVisible, noeudPourManchon,
     cablesDisponiblesPourManchon, chargementAjoutManchon,
     ouvrirPopupAjouterManchon, fermerPopupAjouterManchon, creerManchon,

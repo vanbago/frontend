@@ -169,11 +169,14 @@ onUnmounted(() => { map.value?.remove() })
         :structure-cable="cables.structureCable.value"
         @close="cables.fermerInspection"
         @start-drag="demarrerDrag"
+        @modifier-cable="(id) => cables.ouvrirEditionCable(id)"
+        @supprimer-cable="(id, nom) => cables.supprimerCable(id, nom, chargerInfrastructure)"
       />
 
       <!-- FORMULAIRE NŒUD -->
       <FormulaireNoeud
         :visible="noeuds.panneauOuvert.value"
+        :est-edition="!!noeuds.noeudEnEditionId.value"
         :position="fenetres.creation"
         :formulaire="noeuds.formulaireNoeud"
         :centres-disponibles="noeuds.centresDisponibles.value"
@@ -213,7 +216,8 @@ onUnmounted(() => { map.value?.remove() })
           <div @mousedown.stop.prevent="demarrerDrag($event, 'creationCable')"
                class="bg-blue-50 px-4 py-3 border-b border-blue-200 cursor-move flex justify-between items-center select-none">
             <h3 class="font-bold text-blue-800 text-sm flex items-center gap-2">
-              <span class="text-blue-600">🔌</span> Nouveau Câble
+              <span class="text-blue-600">🔌</span>
+              {{ cables.cableEnEditionId.value ? '✏️ Modifier le câble' : 'Nouveau Câble' }}
             </h3>
             <button @mousedown.stop @click.stop="cables.fermerPanneauCable"
                     class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none">&times;</button>
@@ -321,7 +325,7 @@ onUnmounted(() => { map.value?.remove() })
             </button>
             <button @click="cables.sauvegarderNouveauCable(chargerInfrastructure)"
                     class="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700 shadow-sm">
-              Créer Câble
+              {{ cables.cableEnEditionId.value ? 'Enregistrer' : 'Créer Câble' }}
             </button>
           </div>
         </div>
@@ -341,6 +345,8 @@ onUnmounted(() => { map.value?.remove() })
         @voir-soudures-noeud="onVoirSouduresNoeud"
         @installer-manchon="onInstallerManchon"
         @ajouter-manchon="onAjouterManchon"
+        @modifier-noeud="(id) => noeuds.ouvrirEditionNoeud(id)"
+        @supprimer-noeud="(id, nom) => noeuds.supprimerNoeud(id, nom, chargerInfrastructure)"
       />
 
       <!-- MATRICE DE SOUDURES -->
