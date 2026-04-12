@@ -312,7 +312,8 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     const rep = await AuthService.apiCall(`${BASE_URL}/api/utilisateurs/me/`)
     if (rep.ok) {
       const moi = await rep.json()
-      estSuperAdmin.value = !!(moi.is_superuser || moi.is_staff)
+      // Pas de centre assigné → dropdown (super admin ou admin sans centre)
+      estSuperAdmin.value = !moi.centre_id
       if (estSuperAdmin.value) {
         await chargerCentres()
         centreUtilisateurNom.value = null
