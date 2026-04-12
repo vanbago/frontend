@@ -116,7 +116,37 @@ const fermerPopupAjouterManchon = () => {
 
     calqueNoeuds = L.geoJSON(donneesGeoJson, {
       pointToLayer: (feature, latlng) => {
-        const style = styleParType(feature.properties?.type_noeud || '')
+        const type  = feature.properties?.type_noeud || ''
+        const style = styleParType(type)
+
+        if (type === 'BTS') {
+          const couleur = '#22d3ee'
+          const svg = `
+            <svg viewBox="0 0 28 38" width="28" height="38" xmlns="http://www.w3.org/2000/svg">
+              <!-- Signal arcs -->
+              <path d="M7 10 Q14 4 21 10" fill="none" stroke="${couleur}" stroke-width="1.8" stroke-linecap="round" opacity="0.5"/>
+              <path d="M10 13 Q14 9 18 13" fill="none" stroke="${couleur}" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+              <!-- Mât -->
+              <line x1="14" y1="6" x2="14" y2="16" stroke="${couleur}" stroke-width="2.5" stroke-linecap="round"/>
+              <!-- Corps de la tour (triangle) -->
+              <path d="M14,16 L6,34 L22,34 Z" fill="${couleur}" fill-opacity="0.15" stroke="${couleur}" stroke-width="1.5" stroke-linejoin="round"/>
+              <!-- Traverses -->
+              <line x1="9"  y1="22" x2="19" y2="22" stroke="${couleur}" stroke-width="1.5"/>
+              <line x1="7.5" y1="29" x2="20.5" y2="29" stroke="${couleur}" stroke-width="1.5"/>
+              <!-- Base -->
+              <line x1="5" y1="34" x2="23" y2="34" stroke="${couleur}" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>`
+          return L.marker(latlng, {
+            icon: L.divIcon({
+              html: svg,
+              className: '',
+              iconSize:   [28, 38],
+              iconAnchor: [14, 38],
+              popupAnchor:[0, -38],
+            })
+          })
+        }
+
         return L.circleMarker(latlng, {
           color: '#ffffff', weight: 2,
           fillColor: style.fillColor, fillOpacity: 1, radius: style.radius
