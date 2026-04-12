@@ -3,8 +3,12 @@ import type { ShallowRef } from 'vue'
 import L from 'leaflet'
 import AuthService from '../services/auth'
 import type { CableInspection, Fibre, NormeCouleurs } from '../types/map'
+import { useCableEdit } from './useCableEdit'
 
 const BASE_URL = AuthService.getBaseURL()
+const {activerEditionCable} = useCableEdit()
+
+
 
 // =====================================================
 // COULEURS FIBRES (ITU-T)
@@ -251,6 +255,12 @@ export function useCables(map: ShallowRef<L.Map | null>) {
         const coul = couleurParCapacite(infos.capacite_fibres)
         layer.on('mouseover', () => (layer as L.Path).setStyle({ weight: 6, opacity: 1, color: coul }))
         layer.on('mouseout',  () => (layer as L.Path).setStyle({ weight: 3, opacity: 0.9, color: coul }))
+
+        // Clic droit → édition du tracé
+        layer.on('contextmenu', (e: L.LeafletMouseEvent) => {
+          L.DomEvent.stop(e)
+          if (cableID) activerEditionCable(layer as L.Polyline, cableID, () => {})
+        })
       }
     }).addTo(carte)
   }

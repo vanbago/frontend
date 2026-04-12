@@ -21,7 +21,7 @@ export function useMap() {
 
     const centreCoordonnees: L.LatLngExpression = [3.8480, 11.5021]
 
-    map.value = L.map('map', { center: centreCoordonnees, zoom: 13, zoomControl: true })
+    map.value = L.map('map', { center: centreCoordonnees, zoom: 13, zoomControl: true, editable: true } as any)
 
     L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; OpenStreetMap contributors',
