@@ -2,8 +2,6 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from './services/auth'
-import MonitoringDashboard from './Monitoring/MonitoringDashboard.vue'
-
 import { useDrag } from './composables/useDrag'
 import { useMap } from './composables/useMap'
 import { useCables } from './composables/useCables'
@@ -40,9 +38,6 @@ const rechargerNoeuds = async () => {
   await store.chargerNoeuds()
   if (store.geoJsonNoeuds) noeuds.dessinerNoeuds(store.geoJsonNoeuds)
 }
-
-// ===== MONITORING =====
-const afficherDashboard = ref(false)
 
 // ===== MENU CRÉATION =====
 const menuCreationOuvert = ref(false)
@@ -161,10 +156,6 @@ onUnmounted(() => { map.value?.remove() })
           </transition>
         </div>
 
-        <button @click="afficherDashboard = true"
-                class="p-2 rounded-lg transition" style="color:#a78bfa" title="Performances Système">
-          <span class="text-sm">📊</span>
-        </button>
         <div class="h-px w-full my-0.5" style="background:#3a4257"></div>
       </div>
 
@@ -492,36 +483,6 @@ onUnmounted(() => { map.value?.remove() })
         </div>
       </transition>
 
-      <!-- MONITORING DASHBOARD -->
-      <transition
-        enter-active-class="transition-opacity duration-200"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition-opacity duration-150"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="afficherDashboard"
-             class="absolute z-[4000] rounded-xl shadow-2xl flex flex-col overflow-hidden border"
-             style="width: 450px; height: 600px; background:#1a1f2e; border-color:#3a4257"
-             :style="{ left: fenetres.monitoring.x + 'px', top: fenetres.monitoring.y + 'px' }"
-             @mousedown.stop @click.stop>
-
-          <div @mousedown.stop.prevent="demarrerDrag($event, 'monitoring')"
-               class="px-4 py-2 cursor-move flex justify-between items-center select-none border-b"
-               style="background:#1e2433; border-color:#3a4257">
-            <h3 class="text-sm font-bold flex items-center gap-2" style="color:#cbd5e1">
-              <span class="animate-pulse" style="color:#34d399">●</span> Performances Système
-            </h3>
-            <button @mousedown.stop @click.stop="afficherDashboard = false"
-                    class="text-xl font-bold leading-none p-1 transition" style="color:#64748b">&times;</button>
-          </div>
-
-          <div class="flex-1 overflow-y-auto p-2" @mousedown.stop>
-            <MonitoringDashboard />
-          </div>
-        </div>
-      </transition>
 
     </main>
   </div>
