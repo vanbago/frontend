@@ -15,6 +15,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   startDrag: [event: MouseEvent, fenetre: NomFenetre]
+  modifierCable: [id: string]
+  supprimerCable: [id: string, nom: string]
 }>()
 
 const getCouleurTube = (numeroTube: number, cable: CableInspection | null) => {
@@ -157,6 +159,20 @@ const formaterLongueur = (v: number | string | null | undefined) => {
             <p class="text-sm">Aucune fibre enregistrée pour ce câble</p>
           </div>
         </div>
+      </div>
+
+      <!-- Actions -->
+      <div v-if="cable && !chargement" class="p-3 border-t border-gray-200 bg-gray-50 flex gap-2" @mousedown.stop>
+        <button @mousedown.stop @click.stop="emit('modifierCable', cable.id)"
+                class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
+                       text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100">
+          ✏️ Modifier
+        </button>
+        <button @mousedown.stop @click.stop="emit('supprimerCable', cable.id, cable.nom_code)"
+                class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
+                       text-red-700 bg-red-50 border-red-200 hover:bg-red-100">
+          🗑 Supprimer
+        </button>
       </div>
     </div>
   </transition>

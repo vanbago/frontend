@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import  MonitoringDashboard from  '../Monitoring/MonitoringDashboard.vue'
 import  Login from  '../Login.vue'
 import AuthService from '../services/auth'
 
@@ -24,11 +23,6 @@ const router = createRouter({
       path: '/inventaire',
       name: 'Inventaire',
       component: () => import('../InventaireView.vue')
-    },
-    {
-      path: '/monitoring',
-      name: 'Monitoring',
-      component: MonitoringDashboard
     }
   ]
 })
