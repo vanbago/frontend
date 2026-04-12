@@ -347,6 +347,7 @@ onUnmounted(() => { map.value?.remove() })
         @ajouter-manchon="onAjouterManchon"
         @modifier-noeud="(id) => noeuds.ouvrirEditionNoeud(id)"
         @supprimer-noeud="(id, nom) => noeuds.supprimerNoeud(id, nom, chargerInfrastructure)"
+        @supprimer-manchon="(id, nom) => noeuds.supprimerManchon(id, nom, chargerInfrastructure)"
       />
 
       <!-- MATRICE DE SOUDURES -->

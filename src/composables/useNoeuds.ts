@@ -155,6 +155,25 @@ const fermerPopupAjouterManchon = () => {
   }
 
 
+  const supprimerManchon = async (manchonId: string, manchonNom: string, onSuccess: () => void) => {
+    if (!confirm(`Supprimer le manchon "${manchonNom}" ?\n\nCette action est irréversible.`)) return
+    try {
+      const response = await AuthService.apiCall(`${BASE_URL}/api/boitiers/${manchonId}/`, { method: 'DELETE' })
+      if (response.status === 204) {
+        alert(`Manchon "${manchonNom}" supprimé.`)
+        const noeudId = noeudEnInspection.value?.id
+        if (noeudId) await inspecterNoeud(noeudId)
+        onSuccess()
+        return
+      }
+      const data = await response.json()
+      alert(`Impossible de supprimer :\n\n${data.detail || `Erreur ${response.status}`}`)
+    } catch (erreur: any) {
+      console.error('Suppression manchon:', erreur)
+      alert(`Erreur réseau : ${erreur.message}`)
+    }
+  }
+
   const creerManchon = async (
   payload: { nom_reference: string; nombre_cassettes: number | null; cables_ids: string[] },
   onSuccess: () => void
@@ -353,6 +372,6 @@ const fermerPopupAjouterManchon = () => {
     ouvrirPanneau, ouvrirEditionNoeud, fermerPanneau, sauvegarderNouveauNoeud, supprimerNoeud,
     popupAjouterManchonVisible, noeudPourManchon,
     cablesDisponiblesPourManchon, chargementAjoutManchon,
-    ouvrirPopupAjouterManchon, fermerPopupAjouterManchon, creerManchon,
+    ouvrirPopupAjouterManchon, fermerPopupAjouterManchon, creerManchon, supprimerManchon,
   }
 }

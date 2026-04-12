@@ -22,6 +22,7 @@ const emit = defineEmits<{
   ajouterManchon: [noeudId: string]
   modifierNoeud: [id: string]
   supprimerNoeud: [id: string, nom: string]
+  supprimerManchon: [id: string, nom: string]
 }>()
 </script>
 
@@ -219,11 +220,15 @@ const emit = defineEmits<{
                       {{ manchon.etat || 'Inconnu' }}
                     </span>
                   </div>
-                  <div class="flex justify-between items-center mt-2">
-                    <span class="text-xs text-amber-600">{{ manchon.capacite_fibres }} fibres</span>
+                  <div class="flex gap-2 mt-2">
+                    <span class="text-xs text-amber-600 self-center mr-auto">{{ manchon.capacite_fibres }} fibres</span>
                     <button @click="emit('voirSoudures', manchon.id, manchon.nom_reference ?? undefined, manchon.etat === 'ATTENTE')"
                             class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold py-1 px-2 rounded transition-colors">
                       🔍 Soudures
+                    </button>
+                    <button @click="emit('supprimerManchon', manchon.id, manchon.nom_reference ?? manchon.id)"
+                            class="text-xs bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1 px-2 rounded border border-red-200 transition-colors">
+                      🗑
                     </button>
                   </div>
                 </div>
