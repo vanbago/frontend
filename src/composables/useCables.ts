@@ -113,6 +113,8 @@ export function useCables(map: ShallowRef<L.Map | null>) {
   const noeudsDisponibles = ref<{ id: string, nom: string, type: string, coords: [number, number] | null }[]>([])
   const normesDisponibles = ref<{ id: string, code: string }[]>([])
   const centreUtilisateurNom = ref<string | null>(null)
+  const estSuperAdmin = ref(false)
+  const centresDisponibles = ref<{ id: string, nom: string }[]>([])
 
   const formulaireCable = reactive({
     nom_code: '',
@@ -125,6 +127,8 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     statut_physique: 'EN_SERVICE',
     centre_proprietaire_id: ''
   })
+
+  const cableEnEditionId = ref<string | null>(null)
 
   // — Computed —
   const fibresParTube = computed(() => {
@@ -281,20 +285,67 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     }
   }
 
+  const idDepuisUrl = (url: string | null) =>
+    url ? url.split('/').filter(Boolean).pop() ?? '' : ''
+
+  const chargerCentres = async () => {
+    try {
+      const rep = await AuthService.apiCall(`${BASE_URL}/api/centres/`)
+      if (!rep.ok) return
+      const data = await rep.json()
+      let liste: any[] = []
+      if (data.results?.features)        liste = data.results.features
+      else if (data.features)            liste = data.features
+      else if (Array.isArray(data.results)) liste = data.results
+      else if (Array.isArray(data))      liste = data
+      centresDisponibles.value = liste.map((c: any) => ({
+        id:  c.id ?? c.properties?.id,
+        nom: c.properties?.nom_centre || c.properties?.nom || c.nom_centre || c.nom || 'Centre sans nom'
+      }))
+    } catch { /* silencieux */ }
+  }
+
   // — Panneau câble —
   const ouvrirPanneauCable = async () => {
+    cableEnEditionId.value = null
     await Promise.all([chargerNoeuds(), chargerNormes()])
     const rep = await AuthService.apiCall(`${BASE_URL}/api/utilisateurs/me/`)
     if (rep.ok) {
       const moi = await rep.json()
-      formulaireCable.centre_proprietaire_id = moi.centre_id ?? ''
-      centreUtilisateurNom.value = moi.centre_nom ?? null
+      estSuperAdmin.value = !!(moi.is_superuser || moi.is_staff)
+      if (estSuperAdmin.value) {
+        await chargerCentres()
+        centreUtilisateurNom.value = null
+        formulaireCable.centre_proprietaire_id = ''
+      } else {
+        formulaireCable.centre_proprietaire_id = moi.centre_id ?? ''
+        centreUtilisateurNom.value = moi.centre_nom ?? null
+      }
+    }
+    panneauCableOuvert.value = true
+  }
+
+  const ouvrirEditionCable = async (cableID: string) => {
+    cableEnEditionId.value = cableID
+    await Promise.all([chargerNoeuds(), chargerNormes()])
+    const cable = cableEnInspection.value
+    if (cable) {
+      formulaireCable.nom_code               = cable.nom_code
+      formulaireCable.noeud_depart_id        = idDepuisUrl(cable.noeud_depart_url)
+      formulaireCable.noeud_fin_id           = idDepuisUrl(cable.noeud_fin_url)
+      formulaireCable.capacite_fibres        = cable.capacite_fibres
+      formulaireCable.norme_id               = idDepuisUrl(cable.norme_details?.url ?? null)
+      formulaireCable.technologie_transport  = cable.technologie_transport ?? 'FO'
+      formulaireCable.longueur_reelle_metres = cable.longueur_reelle_metres?.toString() ?? ''
+      formulaireCable.statut_physique        = cable.statut_physique ?? 'EN_SERVICE'
+      formulaireCable.centre_proprietaire_id = idDepuisUrl(cable.centre_url)
     }
     panneauCableOuvert.value = true
   }
 
   const fermerPanneauCable = () => {
     panneauCableOuvert.value = false
+    cableEnEditionId.value = null
     formulaireCable.nom_code = ''
     formulaireCable.noeud_depart_id = ''
     formulaireCable.noeud_fin_id = ''
@@ -304,6 +355,19 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     formulaireCable.longueur_reelle_metres = ''
     formulaireCable.statut_physique = 'EN_SERVICE'
     formulaireCable.centre_proprietaire_id = ''
+  }
+
+  const supprimerCable = async (cableID: string, nomCable: string, onSuccess: () => void) => {
+    if (!confirm(`Supprimer définitivement le câble « ${nomCable} » ?\nCette action est irréversible.`)) return
+    try {
+      const response = await AuthService.apiCall(`${BASE_URL}/api/cables/${cableID}/`, { method: 'DELETE' })
+      if (!response.ok) throw new Error(`Erreur ${response.status}`)
+      fermerInspection()
+      onSuccess()
+    } catch (erreur) {
+      console.error('❌ Échec suppression câble:', erreur)
+      alert('Impossible de supprimer le câble. Vérifiez la console F12.')
+    }
   }
 
   const sauvegarderNouveauCable = async (onSuccess: () => void) => {
@@ -335,19 +399,24 @@ export function useCables(map: ShallowRef<L.Map | null>) {
       }
       if (geometrie) payload.geometrie = geometrie
 
-      const response = await AuthService.apiCall(`${BASE_URL}/api/cables/`, {
-        method: 'POST',
+      const estEdition = !!cableEnEditionId.value
+      const url = estEdition
+        ? `${BASE_URL}/api/cables/${cableEnEditionId.value}/`
+        : `${BASE_URL}/api/cables/`
+
+      const response = await AuthService.apiCall(url, {
+        method: estEdition ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       if (!response.ok) throw new Error(JSON.stringify(await response.json()))
 
-      alert("Câble créé avec succès !")
+      alert(estEdition ? "Câble modifié avec succès !" : "Câble créé avec succès !")
       fermerPanneauCable()
       onSuccess()
     } catch (erreur) {
-      console.error("❌ Échec création câble:", erreur)
-      alert("Erreur lors de la création du câble. Vérifiez la console F12.")
+      console.error("❌ Échec sauvegarde câble:", erreur)
+      alert("Erreur lors de la sauvegarde du câble. Vérifiez la console F12.")
     }
   }
 
@@ -356,12 +425,13 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     afficherInspection, cableEnInspection, chargementInspection,
     // état formulaire
     panneauCableOuvert, noeudsDisponibles, normesDisponibles,
-    centreUtilisateurNom, formulaireCable,
+    centreUtilisateurNom, estSuperAdmin, centresDisponibles,
+    formulaireCable, cableEnEditionId,
     // computed
     fibresParTube, structureCable,
     // fonctions
-    dessinerCables, inspecterCable, fermerInspection,
+    dessinerCables, inspecterCable, fermerInspection, supprimerCable,
     getCouleurTube, getStyleFibre,
-    ouvrirPanneauCable, fermerPanneauCable, sauvegarderNouveauCable,
+    ouvrirPanneauCable, ouvrirEditionCable, fermerPanneauCable, sauvegarderNouveauCable,
   }
 }

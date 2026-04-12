@@ -301,7 +301,17 @@ onUnmounted(() => { map.value?.remove() })
 
             <div>
               <label class="block text-xs font-bold text-gray-700 mb-1">Centre propriétaire</label>
-              <div v-if="cables.centreUtilisateurNom.value"
+              <!-- Super admin : dropdown pour choisir n'importe quel centre -->
+              <select v-if="cables.estSuperAdmin.value"
+                      v-model="cables.formulaireCable.centre_proprietaire_id"
+                      class="w-full text-sm p-1.5 border border-gray-300 rounded outline-none focus:ring-1 focus:ring-blue-500">
+                <option value="">-- Sélectionner un centre --</option>
+                <option v-for="c in cables.centresDisponibles.value" :key="c.id" :value="c.id">
+                  🏢 {{ c.nom }}
+                </option>
+              </select>
+              <!-- Utilisateur normal : centre affiché en lecture seule -->
+              <div v-else-if="cables.centreUtilisateurNom.value"
                    class="w-full text-sm p-1.5 border border-gray-200 rounded bg-gray-50 text-gray-600 flex items-center gap-2">
                 <span class="text-xs">🏢</span>
                 <span>{{ cables.centreUtilisateurNom.value }}</span>
