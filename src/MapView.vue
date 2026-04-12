@@ -8,6 +8,7 @@ import { useCables } from './composables/useCables'
 import { useNoeuds } from './composables/useNoeuds'
 import { useInspection } from './composables/useInspection'
 import { useReseauStore } from './stores/reseau'
+import 'leaflet-editable'
 
 import LegendeMap from './components/map/LegendeMap.vue'
 import InspectionCable from './components/map/InspectionCable.vue'
