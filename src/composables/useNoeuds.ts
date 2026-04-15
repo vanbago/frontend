@@ -2,7 +2,7 @@ import { ref, computed, reactive } from 'vue'
 import type { ShallowRef } from 'vue'
 import L from 'leaflet'
 import AuthService from '../services/auth'
-import type { NoeudCentreInspection } from '../types/map'
+import type { CableInspection, NoeudCentreInspection } from '../types/map'
 
 const BASE_URL = AuthService.getBaseURL()
 
@@ -23,6 +23,19 @@ export const styleParType = (type: string): { fillColor: string; radius: number;
     default:                return { fillColor: '#6b7280', radius: 8,  icone: '🖧',  couleurTexte: 'text-gray-600' }
   }
 }
+export interface CentreApi {
+  id: string
+  nom: string
+  code_region?: string
+  ville : string
+  properties?: {
+    id :string
+    nom : string
+    code_region : string
+    ville: string}
+
+}
+
 
 // =====================================================
 // COMPOSABLE
@@ -40,7 +53,7 @@ export function useNoeuds(map: ShallowRef<L.Map | null>) {
   const popupAjouterManchonVisible = ref(false)
   const noeudPourManchon = ref<{ id: string, nom: string } | null>(null)
   const chargementAjoutManchon = ref(false)
-  const cablesDisponiblesPourManchon = ref<any[]>([])
+  const cablesDisponiblesPourManchon = ref<CableInspection[]>([])
 
 
 
@@ -95,7 +108,7 @@ export function useNoeuds(map: ShallowRef<L.Map | null>) {
   }
 
   // ouvrir popup pour ajouter manchon
-  const ouvrirPopupAjouterManchon = async (noeudId: string, noeudNom: string, cables: any[]) => {
+  const ouvrirPopupAjouterManchon = async (noeudId: string, noeudNom: string, cables: CableInspection[]) => {
   noeudPourManchon.value = { id: noeudId, nom: noeudNom }
   // On utilise les câbles déjà chargés par l'inspection — pas de nouvel appel API
   cablesDisponiblesPourManchon.value = cables
@@ -109,7 +122,7 @@ const fermerPopupAjouterManchon = () => {
 }
 
   // — Dessin —
-  const dessinerNoeuds = (donneesGeoJson: any) => {
+  const dessinerNoeuds = (donneesGeoJson: GeoJSON.FeatureCollection) => {
     const carte = map.value
     if (!carte || !donneesGeoJson) return
     if (calqueNoeuds) carte.removeLayer(calqueNoeuds)
@@ -198,9 +211,9 @@ const fermerPopupAjouterManchon = () => {
       }
       const data = await response.json()
       alert(`Impossible de supprimer :\n\n${data.detail || `Erreur ${response.status}`}`)
-    } catch (erreur: any) {
+    } catch (erreur: unknown) {
       console.error('Suppression manchon:', erreur)
-      alert(`Erreur réseau : ${erreur.message}`)
+      alert(`Erreur réseau : ${erreur instanceof Error ? erreur.message : String(erreur)}`)
     }
   }
 
@@ -239,9 +252,9 @@ const fermerPopupAjouterManchon = () => {
 
     onSuccess()
 
-  } catch (erreur: any) {
+  } catch (erreur: unknown) {
     console.error('❌ Échec création manchon:', erreur)
-    alert(`Erreur : ${erreur.message}`)
+    alert(`Erreur : ${erreur instanceof Error ? erreur.message : String(erreur)}`)
   } finally {
     chargementAjoutManchon.value = false
   }
@@ -259,9 +272,11 @@ const fermerPopupAjouterManchon = () => {
       else if (Array.isArray(data.results)) liste = data.results
       else if (Array.isArray(data))  liste = data
 
-      centresDisponibles.value = liste.map((c: any) => ({
+      centresDisponibles.value = liste.map((c: CentreApi) => ({
         id:  c.id ?? c.properties?.id,
-        nom: c.properties?.nom_centre || c.properties?.nom || c.nom_centre || c.nom || 'Centre sans nom'
+        nom: c.properties?.nom || c.properties?.nom || c.nom || 'Centre sans nom',
+        code_region: c.properties?.code_region || c.code_region,
+        ville: c.properties?.ville || c.ville 
       }))
     } catch (erreur) {
       console.error("❌ Échec chargement centres:", erreur)

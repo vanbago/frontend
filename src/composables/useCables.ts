@@ -4,9 +4,39 @@ import L from 'leaflet'
 import AuthService from '../services/auth'
 import type { CableInspection, Fibre, NormeCouleurs } from '../types/map'
 import { useCableEdit } from './useCableEdit'
+import type { Feature } from 'geojson'
 
 const BASE_URL = AuthService.getBaseURL()
 const {activerEditionCable} = useCableEdit()
+
+
+interface CentreApi {
+    id: string
+    nom: string
+    code_region:string
+    ville :string
+    properties: {
+      id: string
+      nom: string
+      code_region: string
+      ville: string
+    }
+  }
+
+interface PayloadCable {
+    nom_code: string
+    noeud_depart_id: string
+    noeud_fin_id: string
+    capacite_fibres: number
+    norme_id: string
+    technologie_transport: string
+    longueur_reelle_metres: number|null
+    centre_proprietaire_id: string
+    statut_physique: string
+    geometrie?: { type: 'LineString'; coordinates: number[][] }
+
+
+}
 
 
 
@@ -118,7 +148,7 @@ export function useCables(map: ShallowRef<L.Map | null>) {
   const normesDisponibles = ref<{ id: string, code: string }[]>([])
   const centreUtilisateurNom = ref<string | null>(null)
   const estSuperAdmin = ref(false)
-  const centresDisponibles = ref<{ id: string, nom: string }[]>([])
+  const centresDisponibles = ref<{ id: string, nom: string, code_region: string , ville: string}[]>([])
 
   const formulaireCable = reactive({
     nom_code: '',
@@ -220,7 +250,7 @@ export function useCables(map: ShallowRef<L.Map | null>) {
   }
 
   // — Dessin —
-  const dessinerCables = (donneesGeoJson: any) => {
+  const dessinerCables = (donneesGeoJson: GeoJSON.FeatureCollection) => {
     const carte = map.value
     if (!carte) return
     if (calqueCables) carte.removeLayer(calqueCables)
@@ -272,24 +302,25 @@ export function useCables(map: ShallowRef<L.Map | null>) {
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
       const data = await response.json()
       let noeuds = data.results?.features || data.features || []
-      noeudsDisponibles.value = noeuds.map((n: any) => ({
+      noeudsDisponibles.value = noeuds.map((n: GeoJSON.Feature) => ({
         id: n.id || n.properties?.id,
         nom: n.properties?.nom_code || 'Nœud sans nom',
         type: n.properties?.type_noeud || '',
-        coords: n.geometry?.coordinates ?? null
+        coords: (n.geometry as GeoJSON.Point)?.coordinates ?? null
       }))
     } catch (erreur) {
       console.error("❌ Échec chargement nœuds:", erreur)
     }
   }
-
+  
+  type NormeApi = { id: string; code: string }
   const chargerNormes = async () => {
     try {
       const response = await AuthService.apiCall(`${BASE_URL}/api/normes/`)
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
       const data = await response.json()
       const liste = data.results || data
-      normesDisponibles.value = (Array.isArray(liste) ? liste : []).map((n: any) => ({ id: n.id, code: n.code }))
+      normesDisponibles.value = (Array.isArray(liste) ? liste : []).map((n: NormeApi) => ({ id: n.id, code: n.code }))
     } catch (erreur) {
       console.error("❌ Échec chargement normes:", erreur)
     }
@@ -298,19 +329,23 @@ export function useCables(map: ShallowRef<L.Map | null>) {
   const idDepuisUrl = (url: string | null) =>
     url ? url.split('/').filter(Boolean).pop() ?? '' : ''
 
+  
+
   const chargerCentres = async () => {
     try {
       const rep = await AuthService.apiCall(`${BASE_URL}/api/centres/`)
       if (!rep.ok) return
       const data = await rep.json()
-      let liste: any[] = []
+      let liste: CentreApi[] = []
       if (data.results?.features)        liste = data.results.features
       else if (data.features)            liste = data.features
       else if (Array.isArray(data.results)) liste = data.results
       else if (Array.isArray(data))      liste = data
-      centresDisponibles.value = liste.map((c: any) => ({
-        id:  c.id ?? c.properties?.id,
-        nom: c.properties?.nom_centre || c.properties?.nom || c.nom_centre || c.nom || 'Centre sans nom'
+      centresDisponibles.value = liste.map((c: CentreApi) => ({
+        id:  c.id || c.properties?.id,
+        nom: c.properties?.nom ||c.nom ,
+        code_region: c.properties?.code_region || c.code_region,
+        ville : c.properties?.ville || c.ville
       }))
     } catch { /* silencieux */ }
   }
@@ -393,10 +428,10 @@ export function useCables(map: ShallowRef<L.Map | null>) {
       const noeudDepart = noeudsDisponibles.value.find(n => n.id === formulaireCable.noeud_depart_id)
       const noeudFin    = noeudsDisponibles.value.find(n => n.id === formulaireCable.noeud_fin_id)
       const geometrie = noeudDepart?.coords && noeudFin?.coords
-        ? { type: 'LineString', coordinates: [noeudDepart.coords, noeudFin.coords] }
+        ? { type: 'LineString' as const, coordinates: [noeudDepart.coords, noeudFin.coords] }
         : null
 
-      const payload: Record<string, any> = {
+      const payload: PayloadCable = {
         nom_code:               formulaireCable.nom_code,
         noeud_depart_id:        formulaireCable.noeud_depart_id,
         noeud_fin_id:           formulaireCable.noeud_fin_id,
