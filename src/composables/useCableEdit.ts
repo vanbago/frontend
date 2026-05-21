@@ -10,11 +10,26 @@ const BASE_URL = AuthService.getBaseURL()
 const cableEnEdition = ref<string | null>(null)
 const polylineEnEdition = shallowRef<L.Polyline | null>(null)
 
+// interface pour 
+declare module 'leaflet' {
+    interface Polyline {
+        enableEdit(): void
+        disableEdit(): void
+        editor?: {revertLayer(): void}
+    }
+
+}
+
 // Helpers pour les méthodes ajoutées par leaflet-editable (non typées dans @types/leaflet)
-const enableEdit  = (p: L.Polyline) => (p as any).enableEdit()
-const disableEdit = (p: L.Polyline) => (p as any).disableEdit()
-const revertLayer = (p: L.Polyline) => (p as any).editor?.revertLayer()
-const getMap      = (p: L.Polyline): L.Map | undefined => (p as any)._map
+const enableEdit  = (p: L.Polyline) => p.enableEdit()
+const disableEdit = (p: L.Polyline) => p.disableEdit()
+const revertLayer = (p: L.Polyline) => p.editor?.revertLayer()
+
+
+const getMap = (polyline: L.Polyline): L.Map | undefined => {
+    return (polyline as unknown as { _map?: L.Map })._map
+}
+
 
 export function useCableEdit() {
 
@@ -81,8 +96,8 @@ export function useCableEdit() {
             terminerEdition(polyline)
             onSuccess()
 
-        } catch (erreur: any) {
-            alert(`Erreur sauvegarde : ${erreur.message}`)
+        } catch (erreur) {
+            alert(`Erreur sauvegarde : ${erreur instanceof Error ? erreur.message : String(erreur)}`)
         }
     }
 

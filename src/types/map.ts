@@ -132,3 +132,26 @@ export interface NoeudCentreInspection {
     manchons?: ManchonResum[]
   }
 }
+
+export interface FibrePort {
+  id: string
+  numero_fibre: number
+  code_couleur_hex: string | null
+  etiquette: string | null
+}
+
+export interface PortOdf {
+  id: string
+  ligne_port: number
+  colonne_port: number
+  fibre_port: FibrePort | null
+}
+
+export interface OdfDetail {
+  id: string
+  nom_reference: string
+  lignes: number
+  colonnes: number
+  cable: CableResum | null
+  ports: PortOdf[]
+}

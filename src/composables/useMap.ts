@@ -2,6 +2,11 @@ import { shallowRef, ref } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import AuthService from '../services/auth'
+import type { FeatureCollection } from 'geojson'
+
+interface MapoptionsEditable extends L.MapOptions {
+    editable?: boolean
+}
 
 const BASE_URL = AuthService.getBaseURL()
 
@@ -19,9 +24,9 @@ export function useMap() {
       utilisateurNom.value = prenom || nom ? `${prenom} ${nom}`.trim() : moi.username
     }
 
-    const centreCoordonnees: L.LatLngExpression = [3.8480, 11.5021]
+    const centreCoordonnees: L.LatLngExpression = [3.517068, 11.501347] //Mbalmayo, Cameroun
 
-    map.value = L.map('map', { center: centreCoordonnees, zoom: 13, zoomControl: true, editable: true } as any)
+    map.value = L.map('map', { center: centreCoordonnees, zoom: 13, zoomControl: true, editable: true } as MapoptionsEditable)
 
     L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; OpenStreetMap contributors',
@@ -31,7 +36,7 @@ export function useMap() {
     L.circleMarker(centreCoordonnees, {
       color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.6, radius: 8
     }).addTo(map.value)
-      .bindPopup('<b>Nœud Optique Principal</b><br>Yaoundé')
+      .bindPopup('<b>Centre de transmission de Mbalmayo</b><br>Mbalmayo, Cameroun')
 
     map.value.on('click', (e: L.LeafletMouseEvent) => {
       const lat = e.latlng.lat.toFixed(6)
@@ -71,8 +76,8 @@ export function useMap() {
   }
 
   const chargerInfrastructure = async (
-    dessinerCables: (data: any) => void,
-    dessinerNoeuds: (data: any) => void
+    dessinerCables: (_geojson: FeatureCollection) => void,
+    dessinerNoeuds: (_geojson: FeatureCollection) => void
   ) => {
     try {
       const [repCables, repNoeuds] = await Promise.all([

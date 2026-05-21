@@ -15,6 +15,12 @@ import InspectionCable from './components/map/InspectionCable.vue'
 import InspectionNoeud from './components/map/InspectionNoeud.vue'
 import FormulaireNoeud from './components/map/FormulaireNoeud.vue'
 import PopupAjouterManchon from './components/map/PopupAjouterManchon.vue'
+import InspectionOdf from './components/map/inspectionOdf.vue'
+import FormulaireOdf from './components/map/FormulaireOdf.vue'
+import PickerFibre from './components/map/PickerFibre.vue'
+import { DICTIONNAIRE_COULEURS } from './composables/useCables'
+import { useOdf } from './composables/useOdf'
+
 
 // ===== ROUTER =====
 const router = useRouter()
@@ -28,6 +34,7 @@ const store = useReseauStore()
 const cables = useCables(map)
 const noeuds = useNoeuds(map)
 const inspection = useInspection()
+const odf = useOdf()
 
 const chargerInfrastructure = async () => {
   await store.chargerInfrastructure()
@@ -48,6 +55,25 @@ const choisirCreation = (type: 'noeud' | 'cable') => {
   menuCreationOuvert.value = false
   if (type === 'noeud') noeuds.ouvrirPanneau()
   else cables.ouvrirPanneauCable()
+}
+
+// ===== WIRING: ODF =====
+const onOuvrirOdf = (odfId: string) => odf.chargerOdf(odfId)
+
+const odfCableNom = ref('')
+const odfNoeudNom = ref('')
+
+const onCreerOdf = (noeudId: string, cableId: string, cableNom: string) => {
+  odfNoeudNom.value = noeuds.noeudEnInspection.value?.nom_code ?? ''
+  odfCableNom.value = cableNom
+  odf.ouvrirPanneauCreation(noeudId, cableId)
+}
+
+const onSauvegarderOdf = async () => {
+  const noeudId = noeuds.noeudEnInspection.value?.id
+  await odf.creerOdf(() => {
+    if (noeudId) noeuds.inspecterNoeud(noeudId)
+  })
 }
 
 // ===== WIRING: actions depuis InspectionNoeud =====
@@ -83,7 +109,7 @@ onUnmounted(() => { map.value?.remove() })
       <div class="flex items-center gap-4 flex-1">
         <div class="flex items-center gap-2 cursor-pointer shrink-0">
           <span class="text-2xl">🌍</span>
-          <span class="text-xl font-bold tracking-tight hidden sm:block" style="color:#38bdf8">Optis_OTN</span>
+          <span class="text-xl font-bold tracking-tight hidden sm:block" style="color:#38bdf8"><i>Optis_OTN</i></span>
         </div>
         <div class="flex items-center rounded px-2 py-1 max-w-sm w-full border" style="background:#252c3d; border-color:#3a4257">
           <span class="text-sm mr-2" style="color:#64748b">🔍</span>
@@ -93,10 +119,6 @@ onUnmounted(() => { map.value?.remove() })
         </div>
       </div>
       <div class="flex items-center gap-2 shrink-0">
-        <nav class="hidden md:flex items-center gap-1 mr-2">
-          <button class="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50">Éditer ▼</button>
-          <router-link to="/inventaire" class="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50">📋 Inventaire</router-link>
-        </nav>
         <div class="w-px h-6 mx-1 hidden md:block" style="background:#3a4257"></div>
         <span v-if="utilisateurNom" class="text-xs hidden md:block" style="color:#64748b">👤 {{ utilisateurNom }}</span>
         <button @click="deconnecter" class="px-3 py-1 text-sm font-bold transition" style="color:#64748b" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'">Déconnexion</button>
@@ -114,12 +136,12 @@ onUnmounted(() => { map.value?.remove() })
       <!-- OUTILS CARTE (haut droite) -->
       <div class="absolute top-4 right-4 z-[1000] rounded-xl shadow-xl flex flex-col gap-0.5 p-1.5 border"
            style="background:#1e2433cc; backdrop-filter:blur(8px); border-color:#3a4257">
-        <button class="p-2 rounded-lg transition" style="color:#94a3b8" title="Couches">
-          <span class="text-sm">🗺️</span>
-        </button>
         <button class="p-2 rounded-lg transition" style="color:#94a3b8" title="Mesure">
           <span class="text-sm">📏</span>
         </button>
+        <router-link to="/inventaire" class="p-2 rounded-lg transition flex items-center justify-center" style="color:#94a3b8" title="Inventaire">
+          <span class="text-sm">📖</span>
+        </router-link>
         <div class="h-px w-full my-0.5" style="background:#3a4257"></div>
 
         <!-- Bouton Créer -->
@@ -349,6 +371,8 @@ onUnmounted(() => { map.value?.remove() })
         :chargement="noeuds.chargementInspectionNoeud.value"
         :position="fenetres.inspectionNoeud"
         :cables-transit-uniques="noeuds.cablesTransitUniques.value"
+        :odf-cable-id="odf.odfEnDetail.value?.cable?.id ?? null"
+        :odf-id="odf.odfEnDetail.value?.id ?? null"
         @close="noeuds.fermerInspectionNoeud"
         @start-drag="demarrerDrag"
         @inspecter-cable="onInspecterCable"
@@ -359,6 +383,45 @@ onUnmounted(() => { map.value?.remove() })
         @modifier-noeud="(id) => noeuds.ouvrirEditionNoeud(id)"
         @supprimer-noeud="(id, nom) => noeuds.supprimerNoeud(id, nom, chargerInfrastructure)"
         @supprimer-manchon="(id, nom) => noeuds.supprimerManchon(id, nom, chargerInfrastructure)"
+        @ouvrir-odf="onOuvrirOdf"
+        @creer-odf="onCreerOdf"
+      />
+
+      <!-- FORMULAIRE ODF -->
+      <FormulaireOdf
+        :visible="odf.panneauCreationOuvert.value"
+        :position="fenetres.creationOdf"
+        :noeud-nom="odfNoeudNom"
+        :cable-nom="odfCableNom"
+        :formulaire="odf.formulaireOdf"
+        :chargement="odf.chargementOdf.value"
+        @close="odf.fermerPanneauCreation"
+        @start-drag="demarrerDrag"
+        @creer="onSauvegarderOdf"
+      />
+
+      <!-- INSPECTION ODF -->
+      <InspectionOdf
+        v-if="odf.afficherOdf.value"
+        :odf="odf.odfEnDetail.value"
+        :chargement="odf.chargementOdf.value"
+        :position="fenetres.inspectionOdf"
+        @placer-fibre="odf.ouvrirPickerFibre"
+        @retirer-fibre="(portId) => odf.retirerFibre(portId)"
+        @deplacer-fibre="(src, dst) => odf.deplacerFibre(src, dst)"
+        @fermer="odf.fermerOdf"
+        @start-drag="demarrerDrag"
+      />
+
+      <!-- PICKER FIBRE -->
+      <PickerFibre
+        :visible="odf.portPourPlacement.value !== null"
+        :position="fenetres.pickerFibre"
+        :fibres="odf.fibresLibres.value"
+        :chargement="odf.chargementFibres.value"
+        @choisir="(fibreId) => odf.placerFibre(odf.portPourPlacement.value!, fibreId)"
+        @close="odf.fermerPickerFibre"
+        @start-drag="demarrerDrag"
       />
 
       <!-- MATRICE DE SOUDURES -->
@@ -468,7 +531,7 @@ onUnmounted(() => { map.value?.remove() })
                        ]"
                        @click="inspection.selectionnerFibre(cable, fibre)">
                     <span class="w-3 h-3 rounded-full flex-shrink-0 border border-gray-300"
-                          :style="{ backgroundColor: fibre.code_couleur_hex ?? '#9ca3af' }"></span>
+                          :style="{ backgroundColor: DICTIONNAIRE_COULEURS[fibre.code_couleur_hex ?? 'INCONNUE']?.bg ?? '#9ca3af' }"></span>
                     <span class="text-gray-500 w-16 flex-shrink-0">T{{ fibre.numero_tube }}-F{{ fibre.numero_fibre }}</span>
                     <span v-if="fibre.fibre_connectee_cable" class="text-green-700 flex-1 truncate">
                       ↔ {{ fibre.fibre_connectee_cable }} T{{ fibre.fibre_connectee_tube }}-F{{ fibre.fibre_connectee_numero }}
