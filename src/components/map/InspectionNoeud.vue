@@ -10,6 +10,8 @@ defineProps<{
   chargement: boolean
   position: { x: number; y: number }
   cablesTransitUniques: CableResum[]
+  odfCableId: string | null
+  odfId: string | null
 }>()
 
 const emit = defineEmits<{
@@ -23,6 +25,8 @@ const emit = defineEmits<{
   modifierNoeud: [id: string]
   supprimerNoeud: [id: string, nom: string]
   supprimerManchon: [id: string, nom: string]
+  ouvrirOdf: [odfId: string]
+  creerOdf: [noeudId: string, cableId: string, cableNom: string]
 }>()
 </script>
 
@@ -97,6 +101,10 @@ const emit = defineEmits<{
                     <span>{{ odf.type_label }}</span>
                     <span v-if="odf.nombre_cassettes">{{ odf.nombre_cassettes }} cassette(s)</span>
                   </div>
+                  <button @click="emit('ouvrirOdf', odf.id)"
+                          class="mt-2 w-full text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded transition-colors">
+                    📋 Ouvrir ODF
+                  </button>
                 </div>
               </div>
               <p v-else class="text-xs text-gray-400 italic">Aucun boîtier enregistré</p>
@@ -120,6 +128,16 @@ const emit = defineEmits<{
                     <span>{{ cable.technologie_transport || 'N/A' }}</span>
                     <span>{{ formaterLongueur(cable.longueur_reelle_metres) }}</span>
                   </div>
+                  <button v-if="cable.id === odfCableId && odfId"
+                          @click.stop="emit('ouvrirOdf', odfId)"
+                          class="mt-1.5 w-full text-xs bg-green-100 hover:bg-green-200 text-green-700 font-bold py-1 px-2 rounded transition-colors">
+                    ✅ Voir ODF
+                  </button>
+                  <button v-else
+                          @click.stop="emit('creerOdf', noeud.id, cable.id, cable.nom_code ?? '')"
+                          class="mt-1.5 w-full text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold py-1 px-2 rounded transition-colors">
+                    📋 Créer ODF
+                  </button>
                 </div>
               </div>
               <p v-else class="text-xs text-gray-400 italic">Aucun câble connecté</p>

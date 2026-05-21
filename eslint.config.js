@@ -4,9 +4,21 @@ import tsParser from '@typescript-eslint/parser'
 import vuePlugin from 'eslint-plugin-vue'
 import vueParser from 'vue-eslint-parser'
 import globals from 'globals'
+import eslintConfigPrettier from 'eslint-config-prettier' // <-- L'import de Prettier
+
+const commonRules = {
+  '@typescript-eslint/no-explicit-any': 'error',
+  'no-unused-vars': 'off', 
+  '@typescript-eslint/no-unused-vars': ['error', { 
+    varsIgnorePattern: '^_',
+    argsIgnorePattern: '^_',
+    caughtErrors: 'none',
+  }],
+};
 
 export default [
   js.configs.recommended,
+  
   {
     files: ['src/**/*.ts', 'src/**/*.tsx'],
     languageOptions: {
@@ -24,9 +36,10 @@ export default [
       '@typescript-eslint': tsPlugin,
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
+      ...commonRules,
     },
   },
+
   {
     files: ['src/**/*.vue'],
     languageOptions: {
@@ -47,7 +60,12 @@ export default [
       vue: vuePlugin,
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
+      ...vuePlugin.configs['flat/recommended'].rules,
+      ...commonRules,
     },
   },
+
+  // --- L'ARBITRE DE LA PAIX ---
+  // Doit TOUJOURS être le dernier élément du tableau
+  eslintConfigPrettier,
 ]

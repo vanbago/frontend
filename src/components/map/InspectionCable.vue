@@ -3,7 +3,7 @@ import type { CableInspection, Fibre } from '../../types/map'
 import { DICTIONNAIRE_COULEURS, getStyleFibre } from '../../composables/useCables'
 import type { NomFenetre } from '../../composables/useDrag'
 
-const props = defineProps<{
+defineProps<{
   visible: boolean
   cable: CableInspection | null
   chargement: boolean

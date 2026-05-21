@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import AuthService from '../services/auth'
+import type { Feature, FeatureCollection, Geometry } from 'geojson'
 
 const BASE_URL = AuthService.getBaseURL()
 
@@ -29,7 +30,7 @@ export interface Noeud {
   statut_operationnel: string | null
   statut_energie: string | null
   date_modification: string | null
-  geometrie?: any
+  geometrie?: Geometry
 }
 
 // ============================================================
@@ -42,8 +43,8 @@ export const useReseauStore = defineStore('reseau', () => {
   // STATE
   // ----------------------------------------------------------
 
-  const geoJsonCables = ref<any>(null)
-  const geoJsonNoeuds = ref<any>(null)
+  const geoJsonCables = ref<FeatureCollection | null>(null)
+  const geoJsonNoeuds = ref<FeatureCollection | null>(null)
 
   const cables = ref<Cable[]>([])
   const noeuds = ref<Noeud[]>([])
@@ -83,8 +84,8 @@ export const useReseauStore = defineStore('reseau', () => {
    * Charge toutes les pages d'un endpoint paginé DRF et retourne
    * un GeoJSON FeatureCollection fusionné avec toutes les features.
    */
-  const chargerToutesLesPages = async (urlDepart: string): Promise<any[]> => {
-    const toutesLesFeatures: any[] = []
+  const chargerToutesLesPages = async (urlDepart: string): Promise<Feature[]> => {
+    const toutesLesFeatures: Feature[] = []
     let urlCourante: string | null = urlDepart
 
     while (urlCourante) {
@@ -121,10 +122,10 @@ export const useReseauStore = defineStore('reseau', () => {
       const features = await chargerToutesLesPages(`${BASE_URL}/api/cables/`)
 
       geoJsonCables.value = { type: 'FeatureCollection', features }
-      cables.value = features.map((f: any) => ({ id: f.id, ...f.properties }))
+      cables.value = features.map((f: Feature) => ({ id: String(f.id??''), ...f.properties })) as Cable[]
 
-    } catch (e: any) {
-      erreurCables.value = e.message
+    } catch (e: unknown) {
+      erreurCables.value = e instanceof Error ? e.message : String(e)
       console.error('❌ Erreur chargement câbles:', e)
     } finally {
       chargementCables.value = false
@@ -139,10 +140,10 @@ export const useReseauStore = defineStore('reseau', () => {
       const features = await chargerToutesLesPages(`${BASE_URL}/api/noeuds/`)
 
       geoJsonNoeuds.value = { type: 'FeatureCollection', features }
-      noeuds.value = features.map((f: any) => ({ id: f.id, ...f.properties }))
+      noeuds.value = features.map((f: Feature) => ({ id: String(f.id ?? ''), ...f.properties })) as Noeud[]
 
-    } catch (e: any) {
-      erreurNoeuds.value = e.message
+    } catch (e: unknown) {
+      erreurNoeuds.value = e instanceof Error ? e.message : String(e)
       console.error('❌ Erreur chargement nœuds:', e)
     } finally {
       chargementNoeuds.value = false

@@ -15,7 +15,11 @@ import InspectionCable from './components/map/InspectionCable.vue'
 import InspectionNoeud from './components/map/InspectionNoeud.vue'
 import FormulaireNoeud from './components/map/FormulaireNoeud.vue'
 import PopupAjouterManchon from './components/map/PopupAjouterManchon.vue'
+import InspectionOdf from './components/map/inspectionOdf.vue'
+import FormulaireOdf from './components/map/FormulaireOdf.vue'
+import PickerFibre from './components/map/PickerFibre.vue'
 import { DICTIONNAIRE_COULEURS } from './composables/useCables'
+import { useOdf } from './composables/useOdf'
 
 
 // ===== ROUTER =====
@@ -30,6 +34,7 @@ const store = useReseauStore()
 const cables = useCables(map)
 const noeuds = useNoeuds(map)
 const inspection = useInspection()
+const odf = useOdf()
 
 const chargerInfrastructure = async () => {
   await store.chargerInfrastructure()
@@ -50,6 +55,25 @@ const choisirCreation = (type: 'noeud' | 'cable') => {
   menuCreationOuvert.value = false
   if (type === 'noeud') noeuds.ouvrirPanneau()
   else cables.ouvrirPanneauCable()
+}
+
+// ===== WIRING: ODF =====
+const onOuvrirOdf = (odfId: string) => odf.chargerOdf(odfId)
+
+const odfCableNom = ref('')
+const odfNoeudNom = ref('')
+
+const onCreerOdf = (noeudId: string, cableId: string, cableNom: string) => {
+  odfNoeudNom.value = noeuds.noeudEnInspection.value?.nom_code ?? ''
+  odfCableNom.value = cableNom
+  odf.ouvrirPanneauCreation(noeudId, cableId)
+}
+
+const onSauvegarderOdf = async () => {
+  const noeudId = noeuds.noeudEnInspection.value?.id
+  await odf.creerOdf(() => {
+    if (noeudId) noeuds.inspecterNoeud(noeudId)
+  })
 }
 
 // ===== WIRING: actions depuis InspectionNoeud =====
@@ -347,6 +371,8 @@ onUnmounted(() => { map.value?.remove() })
         :chargement="noeuds.chargementInspectionNoeud.value"
         :position="fenetres.inspectionNoeud"
         :cables-transit-uniques="noeuds.cablesTransitUniques.value"
+        :odf-cable-id="odf.odfEnDetail.value?.cable?.id ?? null"
+        :odf-id="odf.odfEnDetail.value?.id ?? null"
         @close="noeuds.fermerInspectionNoeud"
         @start-drag="demarrerDrag"
         @inspecter-cable="onInspecterCable"
@@ -357,6 +383,45 @@ onUnmounted(() => { map.value?.remove() })
         @modifier-noeud="(id) => noeuds.ouvrirEditionNoeud(id)"
         @supprimer-noeud="(id, nom) => noeuds.supprimerNoeud(id, nom, chargerInfrastructure)"
         @supprimer-manchon="(id, nom) => noeuds.supprimerManchon(id, nom, chargerInfrastructure)"
+        @ouvrir-odf="onOuvrirOdf"
+        @creer-odf="onCreerOdf"
+      />
+
+      <!-- FORMULAIRE ODF -->
+      <FormulaireOdf
+        :visible="odf.panneauCreationOuvert.value"
+        :position="fenetres.creationOdf"
+        :noeud-nom="odfNoeudNom"
+        :cable-nom="odfCableNom"
+        :formulaire="odf.formulaireOdf"
+        :chargement="odf.chargementOdf.value"
+        @close="odf.fermerPanneauCreation"
+        @start-drag="demarrerDrag"
+        @creer="onSauvegarderOdf"
+      />
+
+      <!-- INSPECTION ODF -->
+      <InspectionOdf
+        v-if="odf.afficherOdf.value"
+        :odf="odf.odfEnDetail.value"
+        :chargement="odf.chargementOdf.value"
+        :position="fenetres.inspectionOdf"
+        @placer-fibre="odf.ouvrirPickerFibre"
+        @retirer-fibre="(portId) => odf.retirerFibre(portId)"
+        @deplacer-fibre="(src, dst) => odf.deplacerFibre(src, dst)"
+        @fermer="odf.fermerOdf"
+        @start-drag="demarrerDrag"
+      />
+
+      <!-- PICKER FIBRE -->
+      <PickerFibre
+        :visible="odf.portPourPlacement.value !== null"
+        :position="fenetres.pickerFibre"
+        :fibres="odf.fibresLibres.value"
+        :chargement="odf.chargementFibres.value"
+        @choisir="(fibreId) => odf.placerFibre(odf.portPourPlacement.value!, fibreId)"
+        @close="odf.fermerPickerFibre"
+        @start-drag="demarrerDrag"
       />
 
       <!-- MATRICE DE SOUDURES -->

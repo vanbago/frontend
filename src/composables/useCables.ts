@@ -4,7 +4,8 @@ import L from 'leaflet'
 import AuthService from '../services/auth'
 import type { CableInspection, Fibre, NormeCouleurs } from '../types/map'
 import { useCableEdit } from './useCableEdit'
-import type { Feature } from 'geojson'
+import type { Feature, FeatureCollection, Point } from 'geojson'
+
 
 const BASE_URL = AuthService.getBaseURL()
 const {activerEditionCable} = useCableEdit()
@@ -250,7 +251,7 @@ export function useCables(map: ShallowRef<L.Map | null>) {
   }
 
   // — Dessin —
-  const dessinerCables = (donneesGeoJson: GeoJSON.FeatureCollection) => {
+  const dessinerCables = (donneesGeoJson: FeatureCollection) => {
     const carte = map.value
     if (!carte) return
     if (calqueCables) carte.removeLayer(calqueCables)
@@ -302,11 +303,11 @@ export function useCables(map: ShallowRef<L.Map | null>) {
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
       const data = await response.json()
       let noeuds = data.results?.features || data.features || []
-      noeudsDisponibles.value = noeuds.map((n: GeoJSON.Feature) => ({
+      noeudsDisponibles.value = noeuds.map((n: Feature) => ({
         id: n.id || n.properties?.id,
         nom: n.properties?.nom_code || 'Nœud sans nom',
         type: n.properties?.type_noeud || '',
-        coords: (n.geometry as GeoJSON.Point)?.coordinates ?? null
+        coords: (n.geometry as Point)?.coordinates ?? null
       }))
     } catch (erreur) {
       console.error("❌ Échec chargement nœuds:", erreur)

@@ -9,7 +9,7 @@ import type { NomFenetre } from '../../composables/useDrag'
 // - cablesDisponibles : les câbles qui passent dans cette chambre
 // ============================================================
 
-const props = defineProps<{
+defineProps<{
   visible: boolean
   position: { x: number; y: number }
   noeudId: string

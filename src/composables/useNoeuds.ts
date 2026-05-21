@@ -2,7 +2,8 @@ import { ref, computed, reactive } from 'vue'
 import type { ShallowRef } from 'vue'
 import L from 'leaflet'
 import AuthService from '../services/auth'
-import type { CableInspection, NoeudCentreInspection } from '../types/map'
+import type { CableResum, NoeudCentreInspection } from '../types/map'
+import type { FeatureCollection } from 'geojson'
 
 const BASE_URL = AuthService.getBaseURL()
 
@@ -37,6 +38,18 @@ export interface CentreApi {
 }
 
 
+
+interface PayloadNoeud {
+  nom_code: string
+  type_noeud: string
+  statut_operationnel: string
+  statut_energie: string
+  est_frontiere: boolean
+  geometrie: {type: 'Point', coordinates: [number, number]}
+  centre_partenaire_id?: string
+}
+
+
 // =====================================================
 // COMPOSABLE
 // =====================================================
@@ -53,7 +66,7 @@ export function useNoeuds(map: ShallowRef<L.Map | null>) {
   const popupAjouterManchonVisible = ref(false)
   const noeudPourManchon = ref<{ id: string, nom: string } | null>(null)
   const chargementAjoutManchon = ref(false)
-  const cablesDisponiblesPourManchon = ref<CableInspection[]>([])
+  const cablesDisponiblesPourManchon = ref<CableResum[]>([])
 
 
 
@@ -108,7 +121,7 @@ export function useNoeuds(map: ShallowRef<L.Map | null>) {
   }
 
   // ouvrir popup pour ajouter manchon
-  const ouvrirPopupAjouterManchon = async (noeudId: string, noeudNom: string, cables: CableInspection[]) => {
+  const ouvrirPopupAjouterManchon = async (noeudId: string, noeudNom: string, cables: CableResum[]) => {
   noeudPourManchon.value = { id: noeudId, nom: noeudNom }
   // On utilise les câbles déjà chargés par l'inspection — pas de nouvel appel API
   cablesDisponiblesPourManchon.value = cables
@@ -122,7 +135,7 @@ const fermerPopupAjouterManchon = () => {
 }
 
   // — Dessin —
-  const dessinerNoeuds = (donneesGeoJson: GeoJSON.FeatureCollection) => {
+  const dessinerNoeuds = (donneesGeoJson: FeatureCollection) => {
     const carte = map.value
     if (!carte || !donneesGeoJson) return
     if (calqueNoeuds) carte.removeLayer(calqueNoeuds)
@@ -266,7 +279,7 @@ const fermerPopupAjouterManchon = () => {
       const response = await AuthService.apiCall(`${BASE_URL}/api/centres/`)
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
       const data = await response.json()
-      let liste: any[] = []
+      let liste: CentreApi[] = []
       if (data.results?.features)   liste = data.results.features
       else if (data.features)        liste = data.features
       else if (Array.isArray(data.results)) liste = data.results
@@ -347,13 +360,14 @@ const fermerPopupAjouterManchon = () => {
       const lat = parseFloat(formulaireNoeud.latitude)
       const lng = parseFloat(formulaireNoeud.longitude)
 
-      const payload: Record<string, any> = {
+      const payload: PayloadNoeud = {
         nom_code:            formulaireNoeud.nom_code,
         type_noeud:          formulaireNoeud.type_noeud,
         statut_operationnel: formulaireNoeud.statut_operationnel,
         statut_energie:      formulaireNoeud.statut_energie,
         est_frontiere:       formulaireNoeud.est_frontiere,
-        geometrie:           { type: "Point", coordinates: [lng, lat] }
+        geometrie:           { type: "Point", coordinates: [lng, lat] },
+        centre_partenaire_id: formulaireNoeud.centre_partenaire_id || undefined
       }
       if (formulaireNoeud.est_frontiere && formulaireNoeud.centre_partenaire_id) {
         payload.centre_partenaire_id = formulaireNoeud.centre_partenaire_id

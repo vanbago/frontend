@@ -2,6 +2,7 @@ import { shallowRef, ref } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import AuthService from '../services/auth'
+import type { FeatureCollection } from 'geojson'
 
 interface MapoptionsEditable extends L.MapOptions {
     editable?: boolean
@@ -75,8 +76,8 @@ export function useMap() {
   }
 
   const chargerInfrastructure = async (
-    dessinerCables: (data: GeoJSON.FeatureCollection) => void,
-    dessinerNoeuds: (data: GeoJSON.FeatureCollection) => void
+    dessinerCables: (_geojson: FeatureCollection) => void,
+    dessinerNoeuds: (_geojson: FeatureCollection) => void
   ) => {
     try {
       const [repCables, repNoeuds] = await Promise.all([
