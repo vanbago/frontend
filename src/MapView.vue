@@ -408,7 +408,7 @@ onUnmounted(() => { map.value?.remove() })
         @retirer-fibre="(portId) => odf.retirerFibre(portId)"
         @deplacer-fibre="(src, dst) => odf.deplacerFibre(src, dst)"
         @redimensionner="(l, c) => odf.redimensionnerOdf(l, c)"
-        @supprimer="() => odf.supprimerOdf(() => noeuds.noeudEnInspection.value && noeuds.inspecterNoeud(noeuds.noeudEnInspection.value.id))"
+        @supprimer="() => odf.supprimerOdf(chargerInfrastructure)"
         @actualiser="() => odf.odfEnDetail.value && odf.chargerOdf(odf.odfEnDetail.value.id)"
         @fermer="odf.fermerOdf"
         @start-drag="demarrerDrag"
