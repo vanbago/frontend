@@ -184,26 +184,26 @@ const fermerPopupAjouterManchon = () => {
         const style = styleParType(infos.type_noeud || '')
 
         const popupContent = document.createElement('div')
-        popupContent.className = 'text-gray-900 font-sans min-w-[180px]'
+        popupContent.className = 'noeud-popup-body'
         popupContent.innerHTML = `
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-lg">${style.icone}</span>
-            <b class="${style.couleurTexte} text-base">${infos.nom_code || 'Nœud Inconnu'}</b>
+          <div class="noeud-popup-titre">
+            <span>${style.icone}</span>
+            <b>${infos.nom_code || 'Nœud Inconnu'}</b>
           </div>
-          <hr class="my-1 border-gray-300">
-          <p class="text-xs m-0"><b>Type:</b> ${infos.type_noeud_label || infos.type_noeud || 'N/A'}</p>
-          <p class="text-xs m-0"><b>Énergie:</b> ${infos.statut_energie || 'N/A'}</p>
-          <p class="text-xs m-0"><b>État:</b> ${infos.statut_operationnel || 'N/A'}</p>
+          <hr class="noeud-popup-hr">
+          <p class="noeud-popup-ligne"><span class="noeud-popup-key">Type</span><span>${infos.type_noeud_label || infos.type_noeud || 'N/A'}</span></p>
+          <p class="noeud-popup-ligne"><span class="noeud-popup-key">Énergie</span><span>${infos.statut_energie || 'N/A'}</span></p>
+          <p class="noeud-popup-ligne"><span class="noeud-popup-key">État</span><span>${infos.statut_operationnel || 'N/A'}</span></p>
         `
         const btn = document.createElement('button')
-        btn.className = 'mt-2 w-full bg-gray-700 hover:bg-gray-800 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors'
+        btn.className = 'noeud-popup-btn'
         btn.textContent = '🔍 Inspecter'
         btn.onclick = () => {
           if (noeudId) { map.value?.closePopup(); inspecterNoeud(noeudId) }
           else alert("ID du nœud introuvable")
         }
         popupContent.appendChild(btn)
-        layer.bindPopup(popupContent)
+        layer.bindPopup(popupContent, { className: 'noeud-popup' })
 
         const nom  = infos.nom_code
         const type = infos.type_noeud || 'AUTRE'

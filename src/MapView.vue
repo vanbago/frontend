@@ -612,4 +612,67 @@ onUnmounted(() => { map.value?.remove() })
 .leaflet-container:not(.zoom-detaille) .leaflet-tooltip.noeud-label:not(.noeud-label-centre):not(.noeud-label-bts) {
   display: none;
 }
+
+/* ── Popup nœud sombre ───────────────────────────────── */
+.noeud-popup .leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.93);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  padding: 0;
+}
+.noeud-popup .leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.93);
+}
+.noeud-popup .leaflet-popup-content { margin: 0; }
+
+.noeud-popup-body {
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 10px 12px 8px;
+  min-width: 170px;
+}
+.noeud-popup-titre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+.noeud-popup-hr {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  margin: 4px 0;
+}
+.noeud-popup-ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 2px 0;
+}
+.noeud-popup-key {
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  align-self: center;
+}
+.noeud-popup-btn {
+  margin-top: 8px;
+  width: 100%;
+  background: #334155;
+  color: #e2e8f0;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.noeud-popup-btn:hover { background: #475569; }
 </style>
