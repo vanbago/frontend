@@ -162,6 +162,51 @@ export function useOdf() {
     }
   }
 
+  // ── Redimensionner un ODF ────────────────────────────
+  const redimensionnerOdf = async (nouvellesLignes: number, nouvellesColonnes: number) => {
+    if (!odfEnDetail.value) return
+    try {
+      const response = await AuthService.apiCall(
+        `${BASE_URL}/api/odf/${odfEnDetail.value.id}/redimensionner/`,
+        {
+          method:  'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ lignes: nouvellesLignes, colonnes: nouvellesColonnes }),
+        }
+      )
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.erreur || data.detail || `Erreur ${response.status}`)
+      }
+      await chargerOdf(odfEnDetail.value.id)
+    } catch (erreur) {
+      console.error('❌ Échec redimensionnement ODF:', erreur)
+      alert(`Redimensionnement échoué : ${erreur instanceof Error ? erreur.message : String(erreur)}`)
+    }
+  }
+
+  // ── Supprimer un ODF ─────────────────────────────────
+  const supprimerOdf = async (onSuccess: () => void) => {
+    if (!odfEnDetail.value) return
+    if (!confirm(`Supprimer définitivement l'ODF "${odfEnDetail.value.nom_reference}" ?\n\nCette action est irréversible.`)) return
+    try {
+      const response = await AuthService.apiCall(
+        `${BASE_URL}/api/odf/${odfEnDetail.value.id}/`,
+        { method: 'DELETE' }
+      )
+      if (response.status === 204) {
+        fermerOdf()
+        onSuccess()
+        return
+      }
+      const data = await response.json().catch(() => ({}))
+      alert(data.detail || `Erreur ${response.status}`)
+    } catch (erreur) {
+      console.error('❌ Échec suppression ODF:', erreur)
+      alert(`Suppression échouée : ${erreur instanceof Error ? erreur.message : String(erreur)}`)
+    }
+  }
+
   // ── Helpers ─────────────────────────────────────────
   const fermerOdf = () => {
     afficherOdf.value  = false
@@ -187,6 +232,7 @@ export function useOdf() {
     portPourPlacement, fibresLibres, chargementFibres,
     chargerOdf, creerOdf,
     placerFibre, deplacerFibre, retirerFibre,
+    redimensionnerOdf, supprimerOdf,
     fermerOdf, ouvrirPanneauCreation, fermerPanneauCreation,
     ouvrirPickerFibre, fermerPickerFibre,
   }
