@@ -153,14 +153,19 @@ const couleurPort = (port: PortOdf) => {
                  class="flex flex-col items-center gap-0.5 cursor-pointer group"
                  :title="portSourceMouvement
                    ? (port.id === portSourceMouvement ? 'Clic pour annuler' : port.fibre_port ? 'Changer la source' : 'Déplacer ici')
-                   : (port.fibre_port ? `F${port.fibre_port.numero_fibre} — clic pour déplacer` : `Vide — clic pour placer`)"
+                   : (port.fibre_port ? `F${port.fibre_port.numero_fibre} — clic pour déplacer` : `Port vide — clic pour placer`)"
                  @click="gererClicPort(port)">
-              <!-- Carreau -->
+              <!-- Numéro du PORT en haut -->
+              <span class="text-[8px] font-bold text-gray-700 leading-none">
+                P{{ (port.ligne_port - 1) * odf.colonnes + port.colonne_port }}
+              </span>
+              <!-- Carreau coloré -->
               <span class="w-6 h-6 rounded flex-shrink-0 transition-all group-hover:scale-110 group-hover:z-10"
                     :class="couleurPort(port)"></span>
-              <!-- Numéro en dessous -->
-              <span class="text-[7px] text-gray-500 leading-none">
-                {{ port.fibre_port?.numero_fibre ?? (port.ligne_port + '-' + port.colonne_port) }}
+              <!-- Numéro de la FIBRE en bas -->
+              <span class="text-[8px] font-bold leading-none"
+                    :class="port.fibre_port ? 'text-gray-800' : 'text-gray-300'">
+                {{ port.fibre_port ? `F${port.fibre_port.numero_fibre}` : '—' }}
               </span>
             </div>
           </div>
