@@ -10,19 +10,29 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  placerFibre:   [portId: string]
-  retirerFibre:  [portId: string]
-  deplacerFibre: [portSourceId: string, portDestId: string]
-  actualiser:    []
-  fermer:        []
-  startDrag:     [event: MouseEvent, fenetre: NomFenetre]
+  placerFibre:    [portId: string]
+  retirerFibre:   [portId: string]
+  deplacerFibre:  [portSourceId: string, portDestId: string]
+  redimensionner: [lignes: number, colonnes: number]
+  supprimer:      []
+  actualiser:     []
+  fermer:         []
+  startDrag:      [event: MouseEvent, fenetre: NomFenetre]
 }>()
+
+// ── Mode redimensionnement ───────────────────────────
+const modeRedimensionner = ref(false)
+const nouvellesLignes    = ref(4)
+const nouvellesColonnes  = ref(12)
 
 // ── Mode déplacement ─────────────────────────────────
 const portSourceMouvement = ref<string | null>(null)
 
-// Reset automatique quand l'ODF recharge
-watch(() => props.odf, () => { portSourceMouvement.value = null })
+watch(() => props.odf, (odf) => {
+  portSourceMouvement.value  = null
+  modeRedimensionner.value   = false
+  if (odf) { nouvellesLignes.value = odf.lignes; nouvellesColonnes.value = odf.colonnes }
+})
 
 const annulerMouvement = () => { portSourceMouvement.value = null }
 
@@ -87,14 +97,45 @@ const couleurPort = (port: PortOdf) => {
           📋 ODF
           <span v-if="odf" class="text-purple-200 font-normal">— {{ odf.nom_reference }}</span>
         </h3>
-        <button @mousedown.stop @click.stop="emit('actualiser')"
-                class="text-purple-200 hover:text-white text-sm p-1" title="Actualiser">🔄</button>
-        <button @mousedown.stop @click.stop="emit('fermer')"
-                class="text-purple-200 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
+        <div class="flex items-center gap-1">
+          <button @mousedown.stop @click.stop="modeRedimensionner = !modeRedimensionner"
+                  class="text-purple-200 hover:text-white text-sm p-1" title="Redimensionner">📐</button>
+          <button @mousedown.stop @click.stop="emit('actualiser')"
+                  class="text-purple-200 hover:text-white text-sm p-1" title="Actualiser">🔄</button>
+          <button @mousedown.stop @click.stop="emit('supprimer')"
+                  class="text-purple-200 hover:text-red-300 text-sm p-1" title="Supprimer">🗑</button>
+          <button @mousedown.stop @click.stop="emit('fermer')"
+                  class="text-purple-200 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
+        </div>
       </div>
 
       <!-- CORPS -->
       <div class="flex-1 overflow-y-auto p-4" @mousedown.stop>
+
+        <!-- Panneau redimensionnement -->
+        <div v-if="modeRedimensionner && odf"
+             class="mb-3 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+          <p class="text-xs font-bold text-indigo-800 mb-2">📐 Redimensionner l'ODF</p>
+          <div class="flex items-end gap-2">
+            <div class="flex-1">
+              <label class="block text-[10px] text-indigo-600 font-bold mb-0.5">Lignes</label>
+              <input v-model.number="nouvellesLignes" type="number" min="1" max="20"
+                     class="w-full text-xs p-1 border border-indigo-300 rounded outline-none focus:ring-1 focus:ring-indigo-500" />
+            </div>
+            <div class="flex-1">
+              <label class="block text-[10px] text-indigo-600 font-bold mb-0.5">Colonnes</label>
+              <input v-model.number="nouvellesColonnes" type="number" min="1" max="48"
+                     class="w-full text-xs p-1 border border-indigo-300 rounded outline-none focus:ring-1 focus:ring-indigo-500" />
+            </div>
+            <button @click="emit('redimensionner', nouvellesLignes, nouvellesColonnes); modeRedimensionner = false"
+                    class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded">
+              Appliquer
+            </button>
+          </div>
+          <p class="text-[10px] text-indigo-500 mt-1.5">
+            ⚠️ Réduire les dimensions échouera si des fibres sont placées dans la zone supprimée.
+          </p>
+        </div>
 
         <!-- Chargement -->
         <div v-if="chargement" class="flex items-center justify-center py-12">
