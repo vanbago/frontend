@@ -580,18 +580,22 @@ onUnmounted(() => { map.value?.remove() })
 
 <style>
 .leaflet-tooltip.noeud-label {
-  background: rgba(15, 23, 42, 0.88);
-  color: #e2e8f0;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 10px;
-  font-weight: 600;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0 2px;
+  font-size: 9px;
+  font-weight: 700;
   font-family: 'Inter', system-ui, sans-serif;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   white-space: nowrap;
   pointer-events: none;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 4px rgba(0,0,0,0.95),
+    0 0 8px rgba(0,0,0,0.7),
+    1px 1px 0 rgba(0,0,0,0.9),
+   -1px -1px 0 rgba(0,0,0,0.9);
 }
 .leaflet-tooltip.noeud-label::before { display: none; }
 
