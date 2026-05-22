@@ -110,12 +110,15 @@ export function useOdf() {
           body:    JSON.stringify({ port_id: portId, fibre_id: fibreId }),
         }
       )
-      if (!response.ok) throw new Error(`Erreur ${response.status}`)
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.erreur || data.detail || `Erreur ${response.status}`)
+      }
       fermerPickerFibre()
       await chargerOdf(odfEnDetail.value.id)
     } catch (erreur) {
       console.error('❌ Échec placement fibre:', erreur)
-      alert('Impossible de placer la fibre.')
+      alert(`Placement échoué : ${erreur instanceof Error ? erreur.message : String(erreur)}`)
     }
   }
 

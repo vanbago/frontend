@@ -409,6 +409,7 @@ onUnmounted(() => { map.value?.remove() })
         @placer-fibre="odf.ouvrirPickerFibre"
         @retirer-fibre="(portId) => odf.retirerFibre(portId)"
         @deplacer-fibre="(src, dst) => odf.deplacerFibre(src, dst)"
+        @actualiser="() => odf.odfEnDetail.value && odf.chargerOdf(odf.odfEnDetail.value.id)"
         @fermer="odf.fermerOdf"
         @start-drag="demarrerDrag"
       />

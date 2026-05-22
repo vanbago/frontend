@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { OdfDetail, PortOdf } from '../../types/map'
 import type { NomFenetre } from '../../composables/useDrag'
 
@@ -13,12 +13,16 @@ const emit = defineEmits<{
   placerFibre:   [portId: string]
   retirerFibre:  [portId: string]
   deplacerFibre: [portSourceId: string, portDestId: string]
+  actualiser:    []
   fermer:        []
   startDrag:     [event: MouseEvent, fenetre: NomFenetre]
 }>()
 
 // ── Mode déplacement ─────────────────────────────────
 const portSourceMouvement = ref<string | null>(null)
+
+// Reset automatique quand l'ODF recharge
+watch(() => props.odf, () => { portSourceMouvement.value = null })
 
 const annulerMouvement = () => { portSourceMouvement.value = null }
 
@@ -83,6 +87,8 @@ const couleurPort = (port: PortOdf) => {
           📋 ODF
           <span v-if="odf" class="text-purple-200 font-normal">— {{ odf.nom_reference }}</span>
         </h3>
+        <button @mousedown.stop @click.stop="emit('actualiser')"
+                class="text-purple-200 hover:text-white text-sm p-1" title="Actualiser">🔄</button>
         <button @mousedown.stop @click.stop="emit('fermer')"
                 class="text-purple-200 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
       </div>
