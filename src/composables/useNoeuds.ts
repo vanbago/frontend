@@ -204,10 +204,30 @@ const fermerPopupAjouterManchon = () => {
         }
         popupContent.appendChild(btn)
         layer.bindPopup(popupContent)
+
+        const nom  = infos.nom_code
+        const type = infos.type_noeud || 'AUTRE'
+        if (nom) {
+          layer.bindTooltip(nom, {
+            permanent:  true,
+            direction:  'top',
+            offset:     type === 'BTS' ? [0, -38] : [0, -12],
+            className:  `noeud-label noeud-label-${type.toLowerCase()}`,
+          })
+        }
       }
     }).addTo(carte)
 
     calqueNoeuds.bringToFront()
+
+    const ajusterClasseZoom = () => {
+      const container = carte.getContainer()
+      if (carte.getZoom() >= 15) container.classList.add('zoom-detaille')
+      else                        container.classList.remove('zoom-detaille')
+    }
+    carte.off('zoomend', ajusterClasseZoom)
+    carte.on('zoomend',  ajusterClasseZoom)
+    ajusterClasseZoom()
   }
 
 

@@ -577,3 +577,35 @@ onUnmounted(() => { map.value?.remove() })
   z-index: 10;
 }
 </style>
+
+<style>
+.leaflet-tooltip.noeud-label {
+  background: rgba(15, 23, 42, 0.88);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: 'Inter', system-ui, sans-serif;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}
+.leaflet-tooltip.noeud-label::before { display: none; }
+
+.noeud-label-centre          { color: #fca5a5; }
+.noeud-label-bts             { color: #67e8f9; }
+.noeud-label-client          { color: #f9a8d4; }
+.noeud-label-chambre         { color: #93c5fd; }
+.noeud-label-manchon         { color: #fcd34d; }
+.noeud-label-manchon_enterre { color: #d6d3d1; }
+.noeud-label-manchon_aerien  { color: #c4b5fd; }
+.noeud-label-poteau          { color: #bef264; }
+
+/* Zoom < 15 : seuls CENTRE et BTS visibles */
+.leaflet-container:not(.zoom-detaille) .leaflet-tooltip.noeud-label:not(.noeud-label-centre):not(.noeud-label-bts) {
+  display: none;
+}
+</style>
