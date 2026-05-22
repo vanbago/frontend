@@ -38,28 +38,26 @@ const emit = defineEmits<{
     leave-to-class="-translate-x-full opacity-0"
   >
     <div v-if="visible"
-         class="absolute z-[4500] bg-white rounded-xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden"
+         class="absolute z-[4500] bg-[#1e2433] rounded-xl shadow-2xl border border-[#2d3448] flex flex-col overflow-hidden"
          style="width: 400px; max-height: 85vh;"
          :style="{ left: position.x + 'px', top: position.y + 'px' }"
          @mousedown.stop @click.stop>
 
       <!-- Barre titre draggable -->
       <div @mousedown.stop.prevent="emit('startDrag', $event, 'inspectionNoeud')"
-           class="px-4 py-3 cursor-move flex justify-between items-center select-none"
-           :class="noeud ? styleParType(noeud.type_noeud).couleurTexte.replace('text-', 'bg-').replace('600', '100') : 'bg-gray-100'">
+           class="px-4 py-3 cursor-move flex justify-between items-center select-none bg-[#252c3d] border-b border-[#2d3448]">
         <h3 class="font-bold text-sm flex items-center gap-2"
-            :class="noeud ? styleParType(noeud.type_noeud).couleurTexte : 'text-gray-800'">
+            :class="noeud ? styleParType(noeud.type_noeud).couleurTexte : 'text-slate-300'">
           <span>{{ noeud ? styleParType(noeud.type_noeud).icone : '🔍' }}</span>
           {{ noeud?.nom_code || 'Chargement...' }}
         </h3>
         <button @mousedown.stop @click.stop="emit('close')"
-                class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none p-1">&times;</button>
+                class="text-slate-400 hover:text-red-400 text-xl font-bold leading-none p-1">&times;</button>
       </div>
 
       <!-- Contenu -->
       <div class="flex-1 overflow-y-auto p-4" @mousedown.stop>
 
-        <!-- Chargement -->
         <div v-if="chargement" class="flex items-center justify-center py-12">
           <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent"></div>
         </div>
@@ -67,12 +65,12 @@ const emit = defineEmits<{
         <div v-else-if="noeud">
 
           <!-- Infos générales -->
-          <div class="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-200">
-            <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
-              <p><b>Type:</b> {{ noeud.type_noeud_label }}</p>
-              <p><b>Énergie:</b> {{ noeud.statut_energie || 'N/A' }}</p>
-              <p><b>État:</b> {{ noeud.statut_operationnel || 'N/A' }}</p>
-              <p><b>Modifié:</b> {{ noeud.date_modification?.split('T')[0] || 'N/A' }}</p>
+          <div class="bg-[#252c3d] rounded-lg p-3 mb-4 border border-[#3a4257]">
+            <div class="grid grid-cols-2 gap-2 text-xs text-slate-400">
+              <p><b class="text-slate-300">Type:</b> {{ noeud.type_noeud_label }}</p>
+              <p><b class="text-slate-300">Énergie:</b> {{ noeud.statut_energie || 'N/A' }}</p>
+              <p><b class="text-slate-300">État:</b> {{ noeud.statut_operationnel || 'N/A' }}</p>
+              <p><b class="text-slate-300">Modifié:</b> {{ noeud.date_modification?.split('T')[0] || 'N/A' }}</p>
             </div>
           </div>
 
@@ -81,194 +79,193 @@ const emit = defineEmits<{
 
             <!-- ODF / Boîtiers -->
             <div class="mb-4">
-              <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
+              <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
                 📦 ODF / Boîtiers
-                <span class="bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.boitiers.length }}</span>
+                <span class="bg-[#3a4257] text-slate-300 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.boitiers.length }}</span>
               </h4>
               <div v-if="noeud.contenu.boitiers.length > 0" class="space-y-2">
                 <div v-for="odf in noeud.contenu.boitiers" :key="odf.id"
-                     class="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                     class="bg-[#252c3d] border border-[#3a4257] rounded-lg p-2">
                   <div class="flex justify-between items-center">
-                    <span class="font-semibold text-blue-800 text-sm">📋 {{ odf.nom_reference || 'Boîtier sans nom' }}</span>
+                    <span class="font-semibold text-slate-200 text-sm">📋 {{ odf.nom_reference || 'Boîtier sans nom' }}</span>
                     <span class="text-xs px-2 py-0.5 rounded-full"
-                          :class="odf.etat === 'BON' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                          :class="odf.etat === 'BON' ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'">
                       {{ odf.etat || 'Inconnu' }}
                     </span>
                   </div>
-                  <div class="flex justify-between text-xs text-blue-600 mt-1">
+                  <div class="flex justify-between text-xs text-slate-400 mt-1">
                     <span>{{ odf.type_label }}</span>
                     <span v-if="odf.nombre_cassettes">{{ odf.nombre_cassettes }} cassette(s)</span>
                   </div>
                   <button @click="emit('ouvrirOdf', odf.id)"
-                          class="mt-2 w-full text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded transition-colors">
+                          class="mt-2 w-full text-xs bg-blue-800 hover:bg-blue-700 text-blue-200 font-bold py-1 px-2 rounded transition-colors">
                     📋 Ouvrir ODF
                   </button>
                 </div>
               </div>
-              <p v-else class="text-xs text-gray-400 italic">Aucun boîtier enregistré</p>
+              <p v-else class="text-xs text-slate-500 italic">Aucun boîtier enregistré</p>
             </div>
 
             <!-- Câbles connectés -->
             <div class="mb-4">
-              <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
+              <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
                 🔌 Câbles Connectés
-                <span class="bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.cables?.length || 0 }}</span>
+                <span class="bg-[#3a4257] text-slate-300 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.cables?.length || 0 }}</span>
               </h4>
               <div v-if="noeud.contenu.cables?.length > 0" class="space-y-2">
                 <div v-for="cable in noeud.contenu.cables" :key="cable.id"
-                     class="bg-indigo-50 border border-indigo-200 rounded-lg p-2 cursor-pointer hover:bg-indigo-100 transition-colors"
+                     class="bg-[#252c3d] border border-[#3a4257] rounded-lg p-2 cursor-pointer hover:bg-[#2d3a52] transition-colors"
                      @click="emit('inspecterCable', cable.id)">
                   <div class="flex justify-between items-center">
-                    <span class="font-semibold text-indigo-800 text-sm">{{ cable.nom_code || 'Câble sans nom' }}</span>
-                    <span class="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full">{{ cable.capacite_fibres }} FO</span>
+                    <span class="font-semibold text-slate-200 text-sm">{{ cable.nom_code || 'Câble sans nom' }}</span>
+                    <span class="text-xs bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded-full">{{ cable.capacite_fibres }} FO</span>
                   </div>
-                  <div class="flex justify-between text-xs text-indigo-600 mt-1">
+                  <div class="flex justify-between text-xs text-slate-400 mt-1">
                     <span>{{ cable.technologie_transport || 'N/A' }}</span>
                     <span>{{ formaterLongueur(cable.longueur_reelle_metres) }}</span>
                   </div>
                   <button v-if="cable.odf_id"
                           @click.stop="emit('ouvrirOdf', cable.odf_id!)"
-                          class="mt-1.5 w-full text-xs bg-green-100 hover:bg-green-200 text-green-700 font-bold py-1 px-2 rounded transition-colors">
+                          class="mt-1.5 w-full text-xs bg-emerald-900 hover:bg-emerald-800 text-emerald-300 font-bold py-1 px-2 rounded transition-colors">
                     ✅ Voir ODF — {{ cable.odf_nom }}
                   </button>
                   <button v-else
                           @click.stop="emit('creerOdf', noeud.id, cable.id, cable.nom_code ?? '')"
-                          class="mt-1.5 w-full text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold py-1 px-2 rounded transition-colors">
+                          class="mt-1.5 w-full text-xs bg-purple-900 hover:bg-purple-800 text-purple-300 font-bold py-1 px-2 rounded transition-colors">
                     📋 Créer ODF
                   </button>
                 </div>
               </div>
-              <p v-else class="text-xs text-gray-400 italic">Aucun câble connecté</p>
+              <p v-else class="text-xs text-slate-500 italic">Aucun câble connecté</p>
             </div>
 
             <!-- Équipements -->
             <div class="mb-4">
-              <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
+              <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
                 ⚙️ Équipements Actifs
-                <span class="bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.equipements?.length || 0 }}</span>
+                <span class="bg-[#3a4257] text-slate-300 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.equipements?.length || 0 }}</span>
               </h4>
               <div v-if="noeud.contenu.equipements?.length > 0" class="space-y-2">
                 <div v-for="equip in noeud.contenu.equipements" :key="equip.id"
-                     class="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+                     class="bg-[#252c3d] border border-[#3a4257] rounded-lg p-2">
                   <div class="flex justify-between items-center">
-                    <span class="font-semibold text-emerald-800 text-sm">{{ equip.nom || 'Équipement sans nom' }}</span>
+                    <span class="font-semibold text-slate-200 text-sm">{{ equip.nom || 'Équipement sans nom' }}</span>
                     <span class="text-xs px-2 py-0.5 rounded-full"
-                          :class="equip.statut === 'EN_SERVICE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
+                          :class="equip.statut === 'EN_SERVICE' ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'">
                       {{ equip.statut || 'Inconnu' }}
                     </span>
                   </div>
-                  <div class="flex justify-between text-xs text-emerald-600 mt-1">
+                  <div class="flex justify-between text-xs text-slate-400 mt-1">
                     <span>{{ equip.type || 'Type inconnu' }}</span>
                     <span>{{ equip.marque || '' }}</span>
                   </div>
                 </div>
               </div>
-              <p v-else class="text-xs text-gray-400 italic">Aucun équipement enregistré</p>
+              <p v-else class="text-xs text-slate-500 italic">Aucun équipement enregistré</p>
             </div>
           </template>
 
-          <!-- CHAMBRE : câbles en transit + installer manchon -->
+          <!-- CHAMBRE -->
           <template v-else-if="noeud.type_noeud === 'CHAMBRE'">
             <div class="mb-4">
-              <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
+              <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
                 🔌 Câbles en transit
-                <span class="bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full text-[10px]">{{ cablesTransitUniques.length }}</span>
+                <span class="bg-[#3a4257] text-slate-300 px-1.5 py-0.5 rounded-full text-[10px]">{{ cablesTransitUniques.length }}</span>
               </h4>
               <div v-if="cablesTransitUniques.length > 0" class="space-y-2">
                 <div v-for="cable in cablesTransitUniques" :key="cable.id"
-                     class="bg-blue-50 border border-blue-200 rounded-lg p-2 cursor-pointer hover:bg-blue-100 transition-colors"
+                     class="bg-[#252c3d] border border-[#3a4257] rounded-lg p-2 cursor-pointer hover:bg-[#2d3a52] transition-colors"
                      @click="emit('inspecterCable', cable.id)">
                   <div class="flex justify-between items-center">
-                    <span class="font-semibold text-blue-800 text-sm">{{ cable.nom_code || 'Câble sans nom' }}</span>
-                    <span class="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">{{ cable.capacite_fibres }} FO</span>
+                    <span class="font-semibold text-slate-200 text-sm">{{ cable.nom_code || 'Câble sans nom' }}</span>
+                    <span class="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full">{{ cable.capacite_fibres }} FO</span>
                   </div>
                 </div>
               </div>
-              <p v-else class="text-xs text-gray-400 italic">Aucun câble ne passe par cette chambre</p>
+              <p v-else class="text-xs text-slate-500 italic">Aucun câble ne passe par cette chambre</p>
             </div>
 
-            <div class="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-4 text-center">
+            <div class="bg-[#252c3d] border border-dashed border-[#3a4257] rounded-lg p-4 text-center">
               <p class="text-3xl mb-2">📭</p>
-              <p class="text-sm text-gray-500 mb-3">Aucun manchon installé</p>
+              <p class="text-sm text-slate-400 mb-3">Aucun manchon installé</p>
               <button @click="emit('installerManchon', noeud.id)"
-                      class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 px-4 rounded transition-colors">
+                      class="bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold py-2 px-4 rounded transition-colors">
                 ➕ Installer un manchon
               </button>
             </div>
           </template>
 
-          <!-- MANCHON (dans chambre) : câbles + manchons installés + bouton ajouter -->
+          <!-- MANCHON -->
           <template v-else-if="noeud.type_noeud === 'MANCHON'">
             <div class="mb-4">
-              <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
+              <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
                 🔌 Câbles en transit
-                <span class="bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.cables?.length || 0 }}</span>
+                <span class="bg-[#3a4257] text-slate-300 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.cables?.length || 0 }}</span>
               </h4>
               <div v-if="noeud.contenu.cables?.length > 0" class="space-y-2">
                 <div v-for="cable in noeud.contenu.cables" :key="cable.id"
-                     class="bg-blue-50 border border-blue-200 rounded-lg p-2 cursor-pointer hover:bg-blue-100 transition-colors"
+                     class="bg-[#252c3d] border border-[#3a4257] rounded-lg p-2 cursor-pointer hover:bg-[#2d3a52] transition-colors"
                      @click="emit('inspecterCable', cable.id)">
                   <div class="flex justify-between items-center">
-                    <span class="font-semibold text-blue-800 text-sm">{{ cable.nom_code || 'Câble sans nom' }}</span>
-                    <span class="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">{{ cable.capacite_fibres }} FO</span>
+                    <span class="font-semibold text-slate-200 text-sm">{{ cable.nom_code || 'Câble sans nom' }}</span>
+                    <span class="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full">{{ cable.capacite_fibres }} FO</span>
                   </div>
-                  <div class="flex justify-between text-xs text-blue-600 mt-1">
+                  <div class="flex justify-between text-xs text-slate-400 mt-1">
                     <span>{{ cable.technologie_transport || 'N/A' }}</span>
                     <span>{{ formaterLongueur(cable.longueur_reelle_metres) }}</span>
                   </div>
                 </div>
               </div>
-              <p v-else class="text-xs text-gray-400 italic">Aucun câble en transit</p>
+              <p v-else class="text-xs text-slate-500 italic">Aucun câble en transit</p>
             </div>
 
             <div class="mb-4">
-              <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
+              <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
                 🔶 Manchons installés
-                <span class="bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.manchons?.length || 0 }}</span>
+                <span class="bg-amber-900 text-amber-300 px-1.5 py-0.5 rounded-full text-[10px]">{{ noeud.contenu.manchons?.length || 0 }}</span>
               </h4>
               <div v-if="(noeud.contenu.manchons?.length ?? 0) > 0" class="space-y-2">
                 <div v-for="manchon in noeud.contenu.manchons" :key="manchon.id"
-                     class="bg-amber-50 border border-amber-200 rounded-lg p-2">
+                     class="bg-[#252c3d] border border-[#3a4257] rounded-lg p-2">
                   <div class="flex justify-between items-center">
-                    <span class="font-semibold text-amber-800 text-sm">🔶 {{ manchon.nom_reference || 'Manchon sans nom' }}</span>
+                    <span class="font-semibold text-slate-200 text-sm">🔶 {{ manchon.nom_reference || 'Manchon sans nom' }}</span>
                     <span class="text-xs px-2 py-0.5 rounded-full"
-                          :class="manchon.etat === 'BON' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                          :class="manchon.etat === 'BON' ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'">
                       {{ manchon.etat || 'Inconnu' }}
                     </span>
                   </div>
                   <div class="flex gap-2 mt-2">
-                    <span class="text-xs text-amber-600 self-center mr-auto">{{ manchon.capacite_fibres }} fibres</span>
+                    <span class="text-xs text-slate-400 self-center mr-auto">{{ manchon.capacite_fibres }} fibres</span>
                     <button @click="emit('voirSoudures', manchon.id, manchon.nom_reference ?? undefined, manchon.etat === 'ATTENTE')"
-                            class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold py-1 px-2 rounded transition-colors">
+                            class="text-xs bg-amber-700 hover:bg-amber-600 text-white font-bold py-1 px-2 rounded transition-colors">
                       🔍 Soudures
                     </button>
                     <button @click="emit('supprimerManchon', manchon.id, manchon.nom_reference ?? manchon.id)"
-                            class="text-xs bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1 px-2 rounded border border-red-200 transition-colors">
+                            class="text-xs bg-red-950 hover:bg-red-900 text-red-400 font-bold py-1 px-2 rounded border border-red-800 transition-colors">
                       🗑
                     </button>
                   </div>
                 </div>
               </div>
-              <p v-else class="text-xs text-gray-400 italic">Aucun manchon installé</p>
+              <p v-else class="text-xs text-slate-500 italic">Aucun manchon installé</p>
             </div>
 
             <button @click="emit('ajouterManchon', noeud.id)"
-                    class="w-full bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs font-bold py-2 px-4 rounded border border-amber-300 transition-colors">
+                    class="w-full bg-amber-900 hover:bg-amber-800 text-amber-300 text-xs font-bold py-2 px-4 rounded border border-amber-700 transition-colors">
               ➕ Ajouter un manchon
             </button>
           </template>
 
-          <!-- MANCHON_ENTERRE / MANCHON_AERIEN : manchon autonome → matrice directe via nœud -->
+          <!-- MANCHON_ENTERRE / MANCHON_AERIEN -->
           <template v-else-if="['MANCHON_ENTERRE','MANCHON_AERIEN'].includes(noeud.type_noeud)">
-            <div class="bg-stone-50 rounded-lg p-3 mb-4 border border-stone-200">
-              <p class="text-xs text-stone-600 flex items-center gap-2">
+            <div class="bg-[#252c3d] rounded-lg p-3 mb-4 border border-[#3a4257]">
+              <p class="text-xs text-slate-400 flex items-center gap-2">
                 <span>{{ noeud.type_noeud === 'MANCHON_ENTERRE' ? '🔽' : '🔼' }}</span>
                 Manchon autonome — la matrice de soudures est accessible via le bouton ci-dessous.
               </p>
             </div>
-
             <button @click="emit('voirSouduresNoeud', noeud.id, noeud.nom_code ?? undefined)"
-                    class="w-full bg-stone-500 hover:bg-stone-600 text-white text-xs font-bold py-2 px-4 rounded transition-colors">
+                    class="w-full bg-[#3a4257] hover:bg-[#4a5568] text-slate-200 text-xs font-bold py-2 px-4 rounded transition-colors">
               🔍 Voir la matrice de soudures complète
             </button>
           </template>
@@ -276,15 +273,15 @@ const emit = defineEmits<{
       </div>
 
       <!-- Actions -->
-      <div v-if="noeud && !chargement" class="p-3 border-t border-gray-200 bg-gray-50 flex gap-2" @mousedown.stop>
+      <div v-if="noeud && !chargement" class="p-3 border-t border-[#2d3448] bg-[#252c3d] flex gap-2" @mousedown.stop>
         <button @mousedown.stop @click.stop="emit('modifierNoeud', noeud.id)"
                 class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
-                       text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100">
+                       text-blue-300 bg-blue-950 border-blue-800 hover:bg-blue-900">
           ✏️ Modifier
         </button>
         <button @mousedown.stop @click.stop="emit('supprimerNoeud', noeud.id, noeud.nom_code ?? noeud.id)"
                 class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
-                       text-red-700 bg-red-50 border-red-200 hover:bg-red-100">
+                       text-red-400 bg-red-950 border-red-800 hover:bg-red-900">
           🗑 Supprimer
         </button>
       </div>

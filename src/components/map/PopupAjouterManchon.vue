@@ -2,13 +2,6 @@
 import { ref, computed } from 'vue'
 import type { NomFenetre } from '../../composables/useDrag'
 
-// ============================================================
-// Ce composant reçoit :
-// - noeudId    : l'UUID du nœud MANCHON/CHAMBRE concerné
-// - noeudNom   : le nom du nœud (pour l'affichage)
-// - cablesDisponibles : les câbles qui passent dans cette chambre
-// ============================================================
-
 defineProps<{
   visible: boolean
   position: { x: number; y: number }
@@ -34,49 +27,30 @@ const emit = defineEmits<{
   }]
 }>()
 
-// ============================================================
-// ÉTAT LOCAL DU FORMULAIRE
-// ============================================================
-const nomManchon = ref('')
-const nombreCassettes = ref<number | null>(null)
+const nomManchon       = ref('')
+const nombreCassettes  = ref<number | null>(null)
 const cablesSelectionnes = ref<string[]>([])
 
-// ============================================================
-// COMPUTED
-// ============================================================
-const formulaireValide = computed(() =>
-  nomManchon.value.trim().length > 0
-)
+const formulaireValide = computed(() => nomManchon.value.trim().length > 0)
+const modeAttente      = computed(() => cablesSelectionnes.value.length === 0)
 
-const modeAttente = computed(() =>
-  cablesSelectionnes.value.length === 0
-)
-
-// ============================================================
-// ACTIONS
-// ============================================================
 const toggleCable = (cableId: string) => {
   const index = cablesSelectionnes.value.indexOf(cableId)
-  if (index === -1) {
-    cablesSelectionnes.value.push(cableId)
-  } else {
-    cablesSelectionnes.value.splice(index, 1)
-  }
+  if (index === -1) cablesSelectionnes.value.push(cableId)
+  else              cablesSelectionnes.value.splice(index, 1)
 }
 
-const estSelectionne = (cableId: string) =>
-  cablesSelectionnes.value.includes(cableId)
+const estSelectionne = (cableId: string) => cablesSelectionnes.value.includes(cableId)
 
 const valider = () => {
   if (!formulaireValide.value) return
   emit('creer', {
-    nom_reference: nomManchon.value.trim(),
+    nom_reference:    nomManchon.value.trim(),
     nombre_cassettes: nombreCassettes.value,
-    cables_ids: cablesSelectionnes.value,
+    cables_ids:       cablesSelectionnes.value,
   })
-  // Réinitialiser le formulaire
-  nomManchon.value = ''
-  nombreCassettes.value = null
+  nomManchon.value       = ''
+  nombreCassettes.value  = null
   cablesSelectionnes.value = []
 }
 
@@ -98,28 +72,25 @@ const formaterLongueur = (v: string | number | null | undefined) => {
     leave-to-class="opacity-0 scale-95 translate-y-2"
   >
     <div v-if="visible"
-         class="absolute z-[5500] bg-white rounded-xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden"
+         class="absolute z-[5500] bg-[#1e2433] rounded-xl shadow-2xl border border-[#2d3448] flex flex-col overflow-hidden"
          style="width: 380px; max-height: 80vh;"
          :style="{ left: position.x + 'px', top: position.y + 'px' }"
          @mousedown.stop @click.stop>
 
       <!-- BARRE TITRE DRAGGABLE -->
       <div @mousedown.stop.prevent="emit('startDrag', $event, 'ajouterManchon')"
-           class="bg-amber-500 px-4 py-3 cursor-move flex justify-between items-center select-none">
+           class="bg-amber-700 px-4 py-3 cursor-move flex justify-between items-center select-none">
         <h3 class="text-white text-sm font-bold flex items-center gap-2">
           🔶 Nouveau manchon
-          <span class="text-amber-100 font-normal text-xs">— {{ noeudNom }}</span>
+          <span class="text-amber-200 font-normal text-xs">— {{ noeudNom }}</span>
         </h3>
         <button @mousedown.stop @click.stop="emit('close')"
-                class="text-amber-200 hover:text-white text-xl font-bold leading-none p-1">
-          &times;
-        </button>
+                class="text-amber-200 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
       </div>
 
       <!-- CONTENU -->
       <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4" @mousedown.stop>
 
-        <!-- Chargement -->
         <div v-if="chargement" class="flex items-center justify-center py-8">
           <div class="animate-spin rounded-full h-8 w-8 border-4 border-amber-500 border-t-transparent"></div>
         </div>
@@ -128,53 +99,48 @@ const formaterLongueur = (v: string | number | null | undefined) => {
 
           <!-- Nom du manchon -->
           <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">
-              Nom / Référence du manchon <span class="text-red-500">*</span>
+            <label class="block text-xs font-bold text-slate-300 mb-1">
+              Nom / Référence du manchon <span class="text-red-400">*</span>
             </label>
             <input
               v-model="nomManchon"
               type="text"
               placeholder="Ex: BPEO-CH5-01"
-              class="w-full text-sm p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none"
+              class="w-full text-sm p-2 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none placeholder-slate-600"
               autofocus
             />
           </div>
 
           <!-- Nombre de cassettes -->
           <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">
+            <label class="block text-xs font-bold text-slate-300 mb-1">
               Nombre de cassettes
-              <span class="text-gray-400 font-normal">(optionnel)</span>
+              <span class="text-slate-500 font-normal">(optionnel)</span>
             </label>
             <select
               v-model="nombreCassettes"
-              class="w-full text-sm p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none"
+              class="w-full text-sm p-2 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
             >
               <option :value="null">-- Non défini --</option>
-              <option v-for="n in [1, 2, 3, 4, 6]" :key="n" :value="n">
-                {{ n }} cassette(s)
-              </option>
+              <option v-for="n in [1, 2, 3, 4, 6]" :key="n" :value="n">{{ n }} cassette(s)</option>
             </select>
           </div>
 
           <!-- Sélection des câbles -->
           <div>
-            <label class="block text-xs font-bold text-gray-700 mb-1">
+            <label class="block text-xs font-bold text-slate-300 mb-1">
               Câbles à connecter
-              <span class="text-gray-400 font-normal">(optionnel)</span>
+              <span class="text-slate-500 font-normal">(optionnel)</span>
             </label>
 
-            <!-- Indicateur mode attente -->
             <div v-if="modeAttente"
-                 class="mb-2 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
-              <p class="text-xs text-orange-700 flex items-center gap-2">
+                 class="mb-2 bg-orange-950 border border-orange-800 rounded-lg px-3 py-2">
+              <p class="text-xs text-orange-400 flex items-center gap-2">
                 <span>⏳</span>
-                Aucun câble sélectionné — le manchon sera créé
-                <b>en attente de câbles</b>
+                Aucun câble sélectionné — le manchon sera créé <b>en attente de câbles</b>
               </p>
             </div>
 
-            <!-- Liste des câbles disponibles -->
             <div v-if="cablesDisponibles.length > 0" class="space-y-2">
               <div
                 v-for="cable in cablesDisponibles"
@@ -182,51 +148,39 @@ const formaterLongueur = (v: string | number | null | undefined) => {
                 @click="toggleCable(cable.id)"
                 class="flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all"
                 :class="estSelectionne(cable.id)
-                  ? 'border-amber-400 bg-amber-50 shadow-sm'
-                  : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'"
+                  ? 'border-amber-500 bg-amber-950 shadow-sm'
+                  : 'border-[#3a4257] bg-[#252c3d] hover:border-[#4a5568]'"
               >
-                <!-- Checkbox visuelle -->
                 <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors"
-                     :class="estSelectionne(cable.id)
-                       ? 'border-amber-500 bg-amber-500'
-                       : 'border-gray-300 bg-white'">
+                     :class="estSelectionne(cable.id) ? 'border-amber-500 bg-amber-500' : 'border-[#3a4257] bg-[#1e2433]'">
                   <span v-if="estSelectionne(cable.id)" class="text-white text-xs font-bold">✓</span>
                 </div>
-
-                <!-- Infos câble -->
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-semibold text-gray-800 truncate">
-                    {{ cable.nom_code || 'Câble sans nom' }}
-                  </p>
-                  <p class="text-xs text-gray-500">
-                    {{ cable.capacite_fibres }} FO
-                    · {{ cable.technologie_transport || 'N/A' }}
-                    · {{ formaterLongueur(cable.longueur_reelle_metres) }}
+                  <p class="text-sm font-semibold text-slate-200 truncate">{{ cable.nom_code || 'Câble sans nom' }}</p>
+                  <p class="text-xs text-slate-400">
+                    {{ cable.capacite_fibres }} FO · {{ cable.technologie_transport || 'N/A' }} · {{ formaterLongueur(cable.longueur_reelle_metres) }}
                   </p>
                 </div>
-
-                <!-- Badge sélectionné -->
                 <span v-if="estSelectionne(cable.id)"
-                      class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full flex-shrink-0">
+                      class="text-xs bg-amber-600 text-white px-2 py-0.5 rounded-full flex-shrink-0">
                   Sélectionné
                 </span>
               </div>
             </div>
 
-            <!-- Aucun câble disponible -->
-            <div v-else class="bg-gray-50 rounded-lg p-3 border border-dashed border-gray-300 text-center">
-              <p class="text-xs text-gray-400">Aucun câble ne passe par cette chambre</p>
-              <p class="text-xs text-gray-400 mt-1">Le manchon sera créé en attente de câbles</p>
+            <div v-else class="bg-[#252c3d] rounded-lg p-3 border border-dashed border-[#3a4257] text-center">
+              <p class="text-xs text-slate-500">Aucun câble ne passe par cette chambre</p>
+              <p class="text-xs text-slate-500 mt-1">Le manchon sera créé en attente de câbles</p>
             </div>
           </div>
 
           <!-- Résumé -->
-          <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 text-xs text-gray-600">
-            <p class="font-bold text-gray-700 mb-1">Résumé</p>
-            <p>📋 Nom : <b>{{ nomManchon || '—' }}</b></p>
-            <p>🔌 Câbles : <b>{{ cablesSelectionnes.length }}</b> sélectionné(s)</p>
-            <p>📦 Cassettes : <b>{{ nombreCassettes ?? 'Non défini' }}</b></p>
-            <p class="mt-1 text-amber-600 font-medium">
+          <div class="bg-[#252c3d] rounded-lg p-3 border border-[#3a4257] text-xs text-slate-400">
+            <p class="font-bold text-slate-300 mb-1">Résumé</p>
+            <p>📋 Nom : <b class="text-slate-200">{{ nomManchon || '—' }}</b></p>
+            <p>🔌 Câbles : <b class="text-slate-200">{{ cablesSelectionnes.length }}</b> sélectionné(s)</p>
+            <p>📦 Cassettes : <b class="text-slate-200">{{ nombreCassettes ?? 'Non défini' }}</b></p>
+            <p class="mt-1 font-medium" :class="modeAttente ? 'text-amber-400' : 'text-emerald-400'">
               {{ modeAttente ? '⏳ Sera créé en attente de câbles' : '✅ Prêt à créer avec soudures vides' }}
             </p>
           </div>
@@ -235,10 +189,10 @@ const formaterLongueur = (v: string | number | null | undefined) => {
       </div>
 
       <!-- BOUTONS -->
-      <div class="p-3 border-t border-gray-200 bg-gray-50 flex gap-2 justify-end" @mousedown.stop>
+      <div class="p-3 border-t border-[#2d3448] bg-[#252c3d] flex gap-2 justify-end" @mousedown.stop>
         <button
           @click="emit('close')"
-          class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+          class="px-3 py-1.5 text-xs font-medium text-slate-300 bg-[#1e2433] border border-[#3a4257] rounded-lg hover:bg-[#2d3448] transition-colors"
         >
           Annuler
         </button>
@@ -246,9 +200,7 @@ const formaterLongueur = (v: string | number | null | undefined) => {
           @click="valider"
           :disabled="!formulaireValide"
           class="px-4 py-1.5 text-xs font-bold text-white rounded-lg transition-colors"
-          :class="formulaireValide
-            ? 'bg-amber-500 hover:bg-amber-600 shadow-sm'
-            : 'bg-gray-300 cursor-not-allowed'"
+          :class="formulaireValide ? 'bg-amber-600 hover:bg-amber-500 shadow-sm' : 'bg-[#3a4257] cursor-not-allowed text-slate-500'"
         >
           {{ modeAttente ? '⏳ Créer en attente' : '🔶 Créer le manchon' }}
         </button>

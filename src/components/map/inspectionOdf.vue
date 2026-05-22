@@ -66,12 +66,12 @@ const portsTries = computed(() =>
 
 const couleurPort = (port: PortOdf) => {
   if (port.id === portSourceMouvement.value)
-    return 'bg-amber-400 ring-2 ring-amber-600 text-white'
+    return 'bg-amber-400 ring-2 ring-amber-500 text-white'
   if (!port.fibre_port)
-    return 'bg-gray-200 hover:bg-purple-100 text-gray-400'
+    return 'bg-[#3a4257] hover:bg-[#4a5568] text-slate-500'
   if (!port.fibre_port.etiquette)
-    return 'bg-orange-400 hover:bg-orange-500 text-white'
-  return 'bg-green-500 hover:bg-green-600 text-white'
+    return 'bg-orange-500 hover:bg-orange-400 text-white'
+  return 'bg-emerald-500 hover:bg-emerald-400 text-white'
 }
 </script>
 
@@ -85,27 +85,27 @@ const couleurPort = (port: PortOdf) => {
     leave-to-class="opacity-0 scale-95"
   >
     <div v-if="odf || chargement"
-         class="absolute z-[5000] bg-white rounded-xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden"
+         class="absolute z-[5000] bg-[#1e2433] rounded-xl shadow-2xl border border-[#2d3448] flex flex-col overflow-hidden"
          style="width: 460px; max-height: 85vh;"
          :style="{ left: position.x + 'px', top: position.y + 'px' }"
          @mousedown.stop @click.stop>
 
       <!-- TITRE DRAGGABLE -->
       <div @mousedown.stop.prevent="emit('startDrag', $event, 'inspectionOdf')"
-           class="bg-purple-700 px-4 py-3 cursor-move flex justify-between items-center select-none">
+           class="bg-purple-800 px-4 py-3 cursor-move flex justify-between items-center select-none">
         <h3 class="text-white text-sm font-bold flex items-center gap-2">
           📋 ODF
-          <span v-if="odf" class="text-purple-200 font-normal">— {{ odf.nom_reference }}</span>
+          <span v-if="odf" class="text-purple-300 font-normal">— {{ odf.nom_reference }}</span>
         </h3>
         <div class="flex items-center gap-1">
           <button @mousedown.stop @click.stop="modeRedimensionner = !modeRedimensionner"
-                  class="text-purple-200 hover:text-white text-sm p-1" title="Redimensionner">📐</button>
+                  class="text-purple-300 hover:text-white text-sm p-1" title="Redimensionner">📐</button>
           <button @mousedown.stop @click.stop="emit('actualiser')"
-                  class="text-purple-200 hover:text-white text-sm p-1" title="Actualiser">🔄</button>
+                  class="text-purple-300 hover:text-white text-sm p-1" title="Actualiser">🔄</button>
           <button @mousedown.stop @click.stop="emit('supprimer')"
-                  class="text-purple-200 hover:text-red-300 text-sm p-1" title="Supprimer">🗑</button>
+                  class="text-purple-300 hover:text-red-300 text-sm p-1" title="Supprimer">🗑</button>
           <button @mousedown.stop @click.stop="emit('fermer')"
-                  class="text-purple-200 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
+                  class="text-purple-300 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
         </div>
       </div>
 
@@ -114,21 +114,21 @@ const couleurPort = (port: PortOdf) => {
 
         <!-- Panneau redimensionnement -->
         <div v-if="modeRedimensionner && odf"
-             class="mb-3 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-          <p class="text-xs font-bold text-indigo-800 mb-2">📐 Redimensionner l'ODF</p>
+             class="mb-3 bg-indigo-950 border border-indigo-800 rounded-lg p-3">
+          <p class="text-xs font-bold text-indigo-300 mb-2">📐 Redimensionner l'ODF</p>
           <div class="flex items-end gap-2">
             <div class="flex-1">
-              <label class="block text-[10px] text-indigo-600 font-bold mb-0.5">Lignes</label>
+              <label class="block text-[10px] text-indigo-400 font-bold mb-0.5">Lignes</label>
               <input v-model.number="nouvellesLignes" type="number" min="1" max="20"
-                     class="w-full text-xs p-1 border border-indigo-300 rounded outline-none focus:ring-1 focus:ring-indigo-500" />
+                     class="w-full text-xs p-1 bg-[#1e2433] border border-indigo-700 text-slate-200 rounded outline-none focus:ring-1 focus:ring-indigo-500" />
             </div>
             <div class="flex-1">
-              <label class="block text-[10px] text-indigo-600 font-bold mb-0.5">Colonnes</label>
+              <label class="block text-[10px] text-indigo-400 font-bold mb-0.5">Colonnes</label>
               <input v-model.number="nouvellesColonnes" type="number" min="1" max="48"
-                     class="w-full text-xs p-1 border border-indigo-300 rounded outline-none focus:ring-1 focus:ring-indigo-500" />
+                     class="w-full text-xs p-1 bg-[#1e2433] border border-indigo-700 text-slate-200 rounded outline-none focus:ring-1 focus:ring-indigo-500" />
             </div>
             <button @click="emit('redimensionner', nouvellesLignes, nouvellesColonnes); modeRedimensionner = false"
-                    class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded">
+                    class="text-xs bg-indigo-700 hover:bg-indigo-600 text-white font-bold py-1.5 px-3 rounded">
               Appliquer
             </button>
           </div>
@@ -145,45 +145,45 @@ const couleurPort = (port: PortOdf) => {
         <template v-else-if="odf">
 
           <!-- Infos câble -->
-          <div v-if="odf.cable" class="mb-4 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 flex items-center gap-2">
-            <span class="text-indigo-500">🔌</span>
+          <div v-if="odf.cable" class="mb-4 bg-[#1e293b] border border-indigo-900 rounded-lg px-3 py-2 flex items-center gap-2">
+            <span class="text-indigo-400">🔌</span>
             <div class="flex-1 min-w-0">
-              <p class="text-[10px] text-indigo-400 uppercase font-bold">Câble associé</p>
-              <p class="text-sm font-semibold text-indigo-800 truncate">{{ odf.cable.nom_code }}</p>
+              <p class="text-[10px] text-indigo-500 uppercase font-bold">Câble associé</p>
+              <p class="text-sm font-semibold text-indigo-300 truncate">{{ odf.cable.nom_code }}</p>
             </div>
-            <span class="text-xs text-indigo-600 shrink-0">{{ odf.cable.capacite_fibres }} FO</span>
+            <span class="text-xs text-indigo-400 shrink-0">{{ odf.cable.capacite_fibres }} FO</span>
           </div>
-          <div v-else class="mb-4 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
-            <p class="text-xs text-orange-700">⚠️ Aucun câble associé — impossible de placer des fibres</p>
+          <div v-else class="mb-4 bg-orange-950 border border-orange-800 rounded-lg px-3 py-2">
+            <p class="text-xs text-orange-400">⚠️ Aucun câble associé — impossible de placer des fibres</p>
           </div>
 
           <!-- Légende + dimensions -->
           <div class="flex items-center justify-between mb-3">
-            <div class="flex gap-3 text-[10px] text-gray-500">
+            <div class="flex gap-3 text-[10px] text-slate-400">
               <span class="flex items-center gap-1">
-                <span class="w-3 h-3 rounded bg-green-500 inline-block"></span> Avec service
+                <span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span> Avec service
               </span>
               <span class="flex items-center gap-1">
-                <span class="w-3 h-3 rounded bg-orange-400 inline-block"></span> Sans service
+                <span class="w-3 h-3 rounded bg-orange-500 inline-block"></span> Sans service
               </span>
               <span class="flex items-center gap-1">
-                <span class="w-3 h-3 rounded bg-gray-200 inline-block"></span> Vide
+                <span class="w-3 h-3 rounded bg-[#3a4257] inline-block"></span> Vide
               </span>
             </div>
-            <span class="text-[10px] text-gray-400">{{ odf.lignes }}×{{ odf.colonnes }} = {{ odf.lignes * odf.colonnes }} ports</span>
+            <span class="text-[10px] text-slate-500">{{ odf.lignes }}×{{ odf.colonnes }} = {{ odf.lignes * odf.colonnes }} ports</span>
           </div>
 
           <!-- Bannière mode déplacement -->
           <div v-if="portSourceMouvement"
-               class="mb-3 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2 flex items-center justify-between">
-            <p class="text-xs text-amber-700 font-medium">
+               class="mb-3 bg-amber-950 border border-amber-700 rounded-lg px-3 py-2 flex items-center justify-between">
+            <p class="text-xs text-amber-300 font-medium">
               🟡 Fibre sélectionnée — cliquez un port vide pour déplacer
             </p>
             <div class="flex gap-2">
               <button @click="emit('retirerFibre', portSourceMouvement); annulerMouvement()"
-                      class="text-xs text-red-600 hover:text-red-800 font-bold">Retirer</button>
+                      class="text-xs text-red-400 hover:text-red-300 font-bold">Retirer</button>
               <button @click="annulerMouvement"
-                      class="text-xs text-gray-500 hover:text-gray-700 font-bold">Annuler</button>
+                      class="text-xs text-slate-400 hover:text-slate-300 font-bold">Annuler</button>
             </div>
           </div>
 
@@ -197,7 +197,7 @@ const couleurPort = (port: PortOdf) => {
                    : (port.fibre_port ? `F${port.fibre_port.numero_fibre} — clic pour déplacer` : `Port vide — clic pour placer`)"
                  @click="gererClicPort(port)">
               <!-- Numéro du PORT en haut -->
-              <span class="text-[8px] font-bold text-gray-700 leading-none">
+              <span class="text-[8px] font-bold text-slate-500 leading-none">
                 P{{ (port.ligne_port - 1) * odf.colonnes + port.colonne_port }}
               </span>
               <!-- Carreau coloré -->
@@ -205,16 +205,16 @@ const couleurPort = (port: PortOdf) => {
                     :class="couleurPort(port)"></span>
               <!-- Numéro de la FIBRE en bas -->
               <span class="text-[8px] font-bold leading-none"
-                    :class="port.fibre_port ? 'text-gray-800' : 'text-gray-300'">
+                    :class="port.fibre_port ? 'text-slate-300' : 'text-slate-600'">
                 {{ port.fibre_port ? `F${port.fibre_port.numero_fibre}` : '—' }}
               </span>
             </div>
           </div>
 
           <!-- Instruction -->
-          <p class="mt-3 text-[10px] text-gray-400 text-center">
+          <p class="mt-3 text-[10px] text-slate-500 text-center">
             <span v-if="!portSourceMouvement">Clic port occupé → sélectionner · Clic port vide → placer</span>
-            <span v-else class="text-amber-500">Clic port vide → déplacer · Clic même port → annuler</span>
+            <span v-else class="text-amber-400">Clic port vide → déplacer · Clic même port → annuler</span>
           </p>
 
         </template>

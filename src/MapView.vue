@@ -231,34 +231,34 @@ onUnmounted(() => { map.value?.remove() })
         leave-to-class="translate-x-full opacity-0"
       >
         <div v-if="cables.panneauCableOuvert.value"
-             class="absolute z-[3000] bg-white rounded-xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden"
+             class="absolute z-[3000] bg-[#1e2433] rounded-xl shadow-2xl border border-[#2d3448] flex flex-col overflow-hidden"
              style="width: 340px; max-height: 85vh;"
              :style="{ left: fenetres.creationCable.x + 'px', top: fenetres.creationCable.y + 'px' }"
              @mousedown.stop @click.stop>
 
           <div @mousedown.stop.prevent="demarrerDrag($event, 'creationCable')"
-               class="bg-blue-50 px-4 py-3 border-b border-blue-200 cursor-move flex justify-between items-center select-none">
-            <h3 class="font-bold text-blue-800 text-sm flex items-center gap-2">
-              <span class="text-blue-600">🔌</span>
+               class="bg-blue-700 px-4 py-3 cursor-move flex justify-between items-center select-none">
+            <h3 class="font-bold text-white text-sm flex items-center gap-2">
+              <span>🔌</span>
               {{ cables.cableEnEditionId.value ? '✏️ Modifier le câble' : 'Nouveau Câble' }}
             </h3>
             <button @mousedown.stop @click.stop="cables.fermerPanneauCable"
-                    class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none">&times;</button>
+                    class="text-blue-200 hover:text-white text-xl font-bold leading-none">&times;</button>
           </div>
 
           <div class="p-4 flex-1 overflow-y-auto flex flex-col gap-3" @mousedown.stop>
-            <p class="text-xs text-gray-500 mb-2 font-medium">Créez un câble en reliant deux nœuds existants.</p>
+            <p class="text-xs text-slate-400 mb-2 font-medium">Créez un câble en reliant deux nœuds existants.</p>
 
             <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Nom / Code du câble</label>
+              <label class="block text-xs font-bold text-slate-300 mb-1">Nom / Code du câble</label>
               <input v-model="cables.formulaireCable.nom_code" type="text" placeholder="Ex: CABLE_MBA_YAO_001"
-                     class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                     class="w-full text-sm p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none placeholder-slate-600">
             </div>
 
             <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Nœud de départ</label>
+              <label class="block text-xs font-bold text-slate-300 mb-1">Nœud de départ</label>
               <select v-model="cables.formulaireCable.noeud_depart_id"
-                      class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                      class="w-full text-sm p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none">
                 <option value="">-- Sélectionner --</option>
                 <option v-for="noeud in cables.noeudsDisponibles.value" :key="noeud.id" :value="noeud.id">
                   {{ noeud.nom }} ({{ noeud.type }})
@@ -267,9 +267,9 @@ onUnmounted(() => { map.value?.remove() })
             </div>
 
             <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Nœud de fin</label>
+              <label class="block text-xs font-bold text-slate-300 mb-1">Nœud de fin</label>
               <select v-model="cables.formulaireCable.noeud_fin_id"
-                      class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                      class="w-full text-sm p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none">
                 <option value="">-- Sélectionner --</option>
                 <option v-for="noeud in cables.noeudsDisponibles.value" :key="noeud.id" :value="noeud.id"
                         :disabled="noeud.id === cables.formulaireCable.noeud_depart_id">
@@ -280,9 +280,9 @@ onUnmounted(() => { map.value?.remove() })
 
             <div class="flex gap-2">
               <div class="flex-1">
-                <label class="block text-xs font-bold text-gray-700 mb-1">Capacité (fibres)</label>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Capacité (fibres)</label>
                 <select v-model="cables.formulaireCable.capacite_fibres"
-                        class="w-full text-xs p-1.5 border border-gray-300 rounded outline-none">
+                        class="w-full text-xs p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded outline-none">
                   <option :value="6">6 FO</option><option :value="12">12 FO</option>
                   <option :value="24">24 FO</option><option :value="48">48 FO</option>
                   <option :value="72">72 FO</option><option :value="96">96 FO</option>
@@ -290,9 +290,9 @@ onUnmounted(() => { map.value?.remove() })
                 </select>
               </div>
               <div class="flex-1">
-                <label class="block text-xs font-bold text-gray-700 mb-1">Norme couleurs *</label>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Norme couleurs *</label>
                 <select v-model="cables.formulaireCable.norme_id"
-                        class="w-full text-xs p-1.5 border border-gray-300 rounded outline-none">
+                        class="w-full text-xs p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded outline-none">
                   <option value="">-- Sélectionner --</option>
                   <option v-for="norme in cables.normesDisponibles.value" :key="norme.id" :value="norme.id">
                     {{ norme.code }}
@@ -303,18 +303,18 @@ onUnmounted(() => { map.value?.remove() })
 
             <div class="flex gap-2">
               <div class="flex-1">
-                <label class="block text-xs font-bold text-gray-700 mb-1">Technologie</label>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Technologie</label>
                 <select v-model="cables.formulaireCable.technologie_transport"
-                        class="w-full text-xs p-1.5 border border-gray-300 rounded outline-none">
+                        class="w-full text-xs p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded outline-none">
                   <option value="FO">Fibre Optique</option>
                   <option value="FH">Faisceau Hertzien</option>
                   <option value="SAT">Satellite</option>
                 </select>
               </div>
               <div class="flex-1">
-                <label class="block text-xs font-bold text-gray-700 mb-1">Statut</label>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Statut</label>
                 <select v-model="cables.formulaireCable.statut_physique"
-                        class="w-full text-xs p-1.5 border border-gray-300 rounded outline-none">
+                        class="w-full text-xs p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded outline-none">
                   <option value="EN_SERVICE">En service</option>
                   <option value="EN_PROJET">En projet</option>
                   <option value="HORS_SERVICE">Hors service</option>
@@ -323,41 +323,39 @@ onUnmounted(() => { map.value?.remove() })
             </div>
 
             <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Centre propriétaire</label>
-              <!-- Super admin : dropdown pour choisir n'importe quel centre -->
+              <label class="block text-xs font-bold text-slate-300 mb-1">Centre propriétaire</label>
               <select v-if="cables.estSuperAdmin.value"
                       v-model="cables.formulaireCable.centre_proprietaire_id"
-                      class="w-full text-sm p-1.5 border border-gray-300 rounded outline-none focus:ring-1 focus:ring-blue-500">
+                      class="w-full text-sm p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded outline-none focus:ring-1 focus:ring-blue-500">
                 <option value="">-- Sélectionner un centre --</option>
                 <option v-for="c in cables.centresDisponibles.value" :key="c.id" :value="c.id">
                   🏢 {{ c.nom }}
                 </option>
               </select>
-              <!-- Utilisateur normal : centre affiché en lecture seule -->
               <div v-else-if="cables.centreUtilisateurNom.value"
-                   class="w-full text-sm p-1.5 border border-gray-200 rounded bg-gray-50 text-gray-600 flex items-center gap-2">
+                   class="w-full text-sm p-1.5 border border-[#3a4257] rounded bg-[#252c3d] text-slate-300 flex items-center gap-2">
                 <span class="text-xs">🏢</span>
                 <span>{{ cables.centreUtilisateurNom.value }}</span>
               </div>
-              <div v-else class="w-full text-sm p-1.5 border border-red-200 rounded bg-red-50 text-red-600 text-xs">
+              <div v-else class="w-full text-sm p-1.5 border border-red-800 rounded bg-red-950 text-red-400 text-xs">
                 ⚠️ Aucun centre assigné à votre profil — contactez un administrateur
               </div>
             </div>
 
             <div>
-              <label class="block text-xs font-bold text-gray-700 mb-1">Longueur (mètres)</label>
+              <label class="block text-xs font-bold text-slate-300 mb-1">Longueur (mètres)</label>
               <input v-model="cables.formulaireCable.longueur_reelle_metres" type="number" placeholder="Ex: 12500"
-                     class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                     class="w-full text-sm p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none placeholder-slate-600">
             </div>
           </div>
 
-          <div class="p-3 border-t border-gray-200 bg-gray-50 flex gap-2 justify-end" @mousedown.stop>
+          <div class="p-3 border-t border-[#2d3448] bg-[#252c3d] flex gap-2 justify-end" @mousedown.stop>
             <button @click="cables.fermerPanneauCable"
-                    class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100">
+                    class="px-3 py-1.5 text-xs font-medium text-slate-300 bg-[#1e2433] border border-[#3a4257] rounded hover:bg-[#2d3448]">
               Annuler
             </button>
             <button @click="cables.sauvegarderNouveauCable(chargerInfrastructure)"
-                    class="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700 shadow-sm">
+                    class="px-3 py-1.5 text-xs font-bold text-white bg-blue-700 rounded hover:bg-blue-600 shadow-sm">
               {{ cables.cableEnEditionId.value ? 'Enregistrer' : 'Créer Câble' }}
             </button>
           </div>
@@ -435,21 +433,21 @@ onUnmounted(() => { map.value?.remove() })
         leave-to-class="translate-y-4 opacity-0"
       >
         <div v-if="inspection.afficherMatrice.value"
-             class="absolute z-[5000] bg-white rounded-xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden"
+             class="absolute z-[5000] bg-[#1e2433] rounded-xl shadow-2xl border border-[#2d3448] flex flex-col overflow-hidden"
              style="width: 520px; max-height: 85vh;"
              :style="{ left: fenetres.matrice.x + 'px', top: fenetres.matrice.y + 'px' }"
              @mousedown.stop @click.stop>
 
           <div @mousedown.stop.prevent="demarrerDrag($event, 'matrice')"
-               class="px-4 py-3 cursor-move flex justify-between items-center select-none bg-amber-50 border-b border-amber-200">
-            <h3 class="font-bold text-sm text-amber-800 flex items-center gap-2">
+               class="px-4 py-3 cursor-move flex justify-between items-center select-none bg-amber-800 border-b border-amber-900">
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
               🔶 Matrice de soudures
-              <span v-if="inspection.manchonNomEnMatrice.value" class="font-normal text-amber-600">
+              <span v-if="inspection.manchonNomEnMatrice.value" class="font-normal text-amber-200">
                 — {{ inspection.manchonNomEnMatrice.value }}
               </span>
             </h3>
             <button @mousedown.stop @click.stop="inspection.fermerMatrice"
-                    class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none p-1">&times;</button>
+                    class="text-amber-200 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
           </div>
 
           <div class="flex-1 overflow-y-auto p-4" @mousedown.stop>
@@ -460,24 +458,24 @@ onUnmounted(() => { map.value?.remove() })
             <div v-else-if="inspection.manchonEnMatrice.value">
               <!-- Stats -->
               <div class="grid grid-cols-3 gap-2 mb-4">
-                <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
-                  <p class="text-lg font-bold text-gray-700">{{ inspection.manchonEnMatrice.value.stats.total_fibres }}</p>
-                  <p class="text-[10px] text-gray-500 uppercase">Total fibres</p>
+                <div class="bg-[#252c3d] rounded-lg p-2 text-center border border-[#3a4257]">
+                  <p class="text-lg font-bold text-slate-200">{{ inspection.manchonEnMatrice.value.stats.total_fibres }}</p>
+                  <p class="text-[10px] text-slate-500 uppercase">Total fibres</p>
                 </div>
-                <div class="bg-green-50 rounded-lg p-2 text-center border border-green-200">
-                  <p class="text-lg font-bold text-green-700">{{ inspection.manchonEnMatrice.value.stats.fibres_soudees }}</p>
-                  <p class="text-[10px] text-green-500 uppercase">Soudées</p>
+                <div class="bg-emerald-950 rounded-lg p-2 text-center border border-emerald-800">
+                  <p class="text-lg font-bold text-emerald-300">{{ inspection.manchonEnMatrice.value.stats.fibres_soudees }}</p>
+                  <p class="text-[10px] text-emerald-500 uppercase">Soudées</p>
                 </div>
-                <div class="bg-orange-50 rounded-lg p-2 text-center border border-orange-200">
-                  <p class="text-lg font-bold text-orange-700">{{ inspection.manchonEnMatrice.value.stats.fibres_libres }}</p>
+                <div class="bg-orange-950 rounded-lg p-2 text-center border border-orange-800">
+                  <p class="text-lg font-bold text-orange-300">{{ inspection.manchonEnMatrice.value.stats.fibres_libres }}</p>
                   <p class="text-[10px] text-orange-500 uppercase">Libres</p>
                 </div>
               </div>
 
               <!-- Bannière manchon en attente -->
               <div v-if="inspection.manchonEstEnAttente.value"
-                   class="mb-3 bg-orange-50 border border-orange-300 rounded-lg px-3 py-2">
-                <p class="text-xs text-orange-700 flex items-center gap-2">
+                   class="mb-3 bg-orange-950 border border-orange-800 rounded-lg px-3 py-2">
+                <p class="text-xs text-orange-400 flex items-center gap-2">
                   <span>⏳</span>
                   <span>
                     Manchon en attente — tous les câbles du nœud sont affichés.
@@ -489,14 +487,14 @@ onUnmounted(() => { map.value?.remove() })
               <!-- Filtres -->
               <div class="flex gap-2 mb-3">
                 <select v-model="inspection.filtreCableSource.value"
-                        class="flex-1 text-xs border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-amber-400">
+                        class="flex-1 text-xs bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-amber-500">
                   <option value="">Tous les câbles</option>
                   <option v-for="c in inspection.manchonEnMatrice.value.cables" :key="c.cable_id" :value="c.cable_id">
                     {{ c.cable_nom }}
                   </option>
                 </select>
                 <select v-model="inspection.filtreEtat.value"
-                        class="flex-1 text-xs border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-amber-400">
+                        class="flex-1 text-xs bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-amber-500">
                   <option value="">Toutes les fibres</option>
                   <option value="soudees">Soudées</option>
                   <option value="libres">Libres</option>
@@ -505,58 +503,58 @@ onUnmounted(() => { map.value?.remove() })
 
               <!-- Bannière mode soudure -->
               <div v-if="inspection.modeSoudure.actif"
-                   class="mb-3 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2 flex justify-between items-center">
-                <span class="text-xs text-amber-700 font-medium">
+                   class="mb-3 bg-amber-950 border border-amber-700 rounded-lg px-3 py-2 flex justify-between items-center">
+                <span class="text-xs text-amber-300 font-medium">
                   🔗 Source : <b>{{ inspection.modeSoudure.cableSource?.cable_nom }}</b>
                   T{{ inspection.modeSoudure.fibreSource?.numero_tube }}-F{{ inspection.modeSoudure.fibreSource?.numero_fibre }}
                   — Cliquez la fibre destination
                 </span>
-                <button @click="inspection.annulerSoudure" class="text-xs text-red-500 hover:text-red-700 font-bold">Annuler</button>
+                <button @click="inspection.annulerSoudure" class="text-xs text-red-400 hover:text-red-300 font-bold">Annuler</button>
               </div>
 
               <!-- Câbles et fibres -->
               <div v-for="cable in inspection.manchonEnMatrice.value.cables" :key="cable.cable_id" class="mb-4">
-                <h4 class="text-xs font-bold text-gray-600 uppercase mb-2 flex items-center gap-2">
+                <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
                   🔌 {{ cable.cable_nom }}
-                  <span class="bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full text-[10px] font-normal">{{ cable.capacite }} FO</span>
+                  <span class="bg-[#3a4257] text-slate-300 px-1.5 py-0.5 rounded-full text-[10px] font-normal">{{ cable.capacite }} FO</span>
                 </h4>
                 <div class="space-y-1">
                   <div v-for="fibre in inspection.filtrerFibres(cable)" :key="fibre.fibre_id"
                        class="flex items-center gap-2 text-xs rounded px-2 py-1 cursor-pointer transition-colors"
                        :class="[
                          inspection.modeSoudure.fibreSource?.fibre_id === fibre.fibre_id
-                           ? 'bg-amber-100 border border-amber-400 ring-1 ring-amber-300'
+                           ? 'bg-amber-950 border border-amber-500 ring-1 ring-amber-700'
                            : fibre.soudure_id
-                             ? 'bg-green-50 border border-green-100 hover:bg-green-100'
-                             : 'bg-gray-50 border border-gray-100 hover:bg-gray-100'
+                             ? 'bg-emerald-950 border border-emerald-800 hover:bg-emerald-900'
+                             : 'bg-[#252c3d] border border-[#3a4257] hover:bg-[#2d3a52]'
                        ]"
                        @click="inspection.selectionnerFibre(cable, fibre)">
-                    <span class="w-3 h-3 rounded-full flex-shrink-0 border border-gray-300"
+                    <span class="w-3 h-3 rounded-full flex-shrink-0 border border-slate-600"
                           :style="{ backgroundColor: DICTIONNAIRE_COULEURS[fibre.code_couleur_hex ?? 'INCONNUE']?.bg ?? '#9ca3af' }"></span>
-                    <span class="text-gray-500 w-16 flex-shrink-0">T{{ fibre.numero_tube }}-F{{ fibre.numero_fibre }}</span>
-                    <span v-if="fibre.fibre_connectee_cable" class="text-green-700 flex-1 truncate">
+                    <span class="text-slate-400 w-16 flex-shrink-0">T{{ fibre.numero_tube }}-F{{ fibre.numero_fibre }}</span>
+                    <span v-if="fibre.fibre_connectee_cable" class="text-emerald-400 flex-1 truncate">
                       ↔ {{ fibre.fibre_connectee_cable }} T{{ fibre.fibre_connectee_tube }}-F{{ fibre.fibre_connectee_numero }}
                     </span>
-                    <span v-else class="text-gray-400 flex-1 italic">Libre</span>
+                    <span v-else class="text-slate-500 flex-1 italic">Libre</span>
                     <span v-if="fibre.soudure_statut" class="px-1.5 py-0.5 rounded-full text-[10px]"
-                          :class="fibre.soudure_statut === 'BON' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                          :class="fibre.soudure_statut === 'BON' ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'">
                       {{ fibre.soudure_statut }}
                     </span>
                     <button v-if="fibre.soudure_id"
                             @click.stop="inspection.supprimerSoudure(fibre.soudure_id)"
-                            class="text-red-400 hover:text-red-600 font-bold text-xs leading-none px-1">✕</button>
+                            class="text-red-400 hover:text-red-300 font-bold text-xs leading-none px-1">✕</button>
                   </div>
                 </div>
               </div>
 
               <!-- Actions batch -->
-              <div class="flex gap-2 pt-3 border-t border-gray-200 mt-2">
+              <div class="flex gap-2 pt-3 border-t border-[#2d3448] mt-2">
                 <button @click="inspection.souderTout1a1"
-                        class="flex-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 font-bold py-1.5 px-3 rounded border border-green-200 transition-colors">
+                        class="flex-1 text-xs bg-emerald-900 hover:bg-emerald-800 text-emerald-300 font-bold py-1.5 px-3 rounded border border-emerald-700 transition-colors">
                   ⚡ Souder 1:1
                 </button>
                 <button @click="inspection.dessouderTout"
-                        class="flex-1 text-xs bg-red-50 hover:bg-red-100 text-red-700 font-bold py-1.5 px-3 rounded border border-red-200 transition-colors">
+                        class="flex-1 text-xs bg-red-950 hover:bg-red-900 text-red-400 font-bold py-1.5 px-3 rounded border border-red-800 transition-colors">
                   🗑 Tout désouder
                 </button>
               </div>

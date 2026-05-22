@@ -45,14 +45,14 @@ const formaterLongueur = (v: number | string | null | undefined) => {
     leave-to-class="opacity-0 scale-95"
   >
     <div v-if="visible"
-         class="absolute z-[4500] bg-white rounded-xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden pointer-events-auto"
+         class="absolute z-[4500] bg-[#1e2433] rounded-xl shadow-2xl border border-[#2d3448] flex flex-col overflow-hidden pointer-events-auto"
          style="width: 420px; max-height: 80vh;"
          :style="{ left: position.x + 'px', top: position.y + 'px' }"
          @mousedown.stop @click.stop>
 
       <!-- Barre titre draggable -->
       <div @mousedown.stop.prevent="emit('startDrag', $event, 'inspection')"
-           class="bg-blue-600 px-4 py-2 cursor-move flex justify-between items-center select-none">
+           class="bg-blue-700 px-4 py-2 cursor-move flex justify-between items-center select-none">
         <h3 class="text-white text-sm font-bold flex items-center gap-2">
           <span>🔍</span> Inspection Câble
         </h3>
@@ -66,16 +66,16 @@ const formaterLongueur = (v: number | string | null | undefined) => {
         <!-- Chargement -->
         <div v-if="chargement" class="p-8 text-center">
           <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-          <p class="text-gray-500 text-sm mt-3">Chargement des fibres...</p>
+          <p class="text-slate-400 text-sm mt-3">Chargement des fibres...</p>
         </div>
 
         <!-- Détail câble -->
         <div v-else-if="cable" class="p-4">
 
           <!-- En-tête -->
-          <div class="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
-            <h4 class="font-bold text-blue-800 text-lg">{{ cable.nom_code }}</h4>
-            <div class="grid grid-cols-2 gap-2 mt-2 text-xs text-blue-700">
+          <div class="bg-[#1e293b] rounded-lg p-3 mb-4 border border-blue-900">
+            <h4 class="font-bold text-blue-300 text-lg">{{ cable.nom_code }}</h4>
+            <div class="grid grid-cols-2 gap-2 mt-2 text-xs text-blue-400">
               <p><b>Capacité:</b> {{ cable.capacite_fibres }} fibres
                 <span v-if="structureCable" class="text-blue-500">({{ structureCable }})</span>
               </p>
@@ -87,7 +87,7 @@ const formaterLongueur = (v: number | string | null | undefined) => {
 
           <!-- Norme couleurs -->
           <div v-if="cable.norme_details" class="mb-4">
-            <h5 class="text-xs font-bold text-gray-500 uppercase mb-2">
+            <h5 class="text-xs font-bold text-slate-400 uppercase mb-2">
               Norme: {{ cable.norme_details.code }}
             </h5>
             <div class="flex flex-wrap gap-1">
@@ -109,7 +109,7 @@ const formaterLongueur = (v: number | string | null | undefined) => {
             <div v-for="(fibres, numeroTube) in fibresParTube" :key="numeroTube"
                  class="rounded-lg p-3 border-2"
                  :style="{
-                   backgroundColor: getCouleurTube(Number(numeroTube), cable).style.bg + '15',
+                   backgroundColor: getCouleurTube(Number(numeroTube), cable).style.bg + '18',
                    borderColor: getCouleurTube(Number(numeroTube), cable).style.bg
                  }">
 
@@ -122,9 +122,9 @@ const formaterLongueur = (v: number | string | null | undefined) => {
                         borderColor: getCouleurTube(Number(numeroTube), cable).style.border || 'white'
                       }">
                 </span>
-                <span class="text-gray-700">Tube {{ numeroTube }}</span>
-                <span class="text-gray-400 font-normal">({{ getCouleurTube(Number(numeroTube), cable).nom }})</span>
-                <span class="text-gray-400 font-normal ml-auto">{{ fibres.length }} fibres</span>
+                <span class="text-slate-300">Tube {{ numeroTube }}</span>
+                <span class="text-slate-500 font-normal">({{ getCouleurTube(Number(numeroTube), cable).nom }})</span>
+                <span class="text-slate-500 font-normal ml-auto">{{ fibres.length }} fibres</span>
               </h5>
 
               <!-- Grille fibres -->
@@ -143,10 +143,9 @@ const formaterLongueur = (v: number | string | null | undefined) => {
                        }">
                     {{ fibre.numero_fibre }}
                   </div>
-                  <!-- Tooltip -->
-                  <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
-                    F{{ fibre.numero_fibre }} - {{ fibre.code_couleur_hex || 'Inconnue' }}
-                    <span v-if="fibre.etat" class="text-gray-400">({{ fibre.etat }})</span>
+                  <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-900 text-slate-200 text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none border border-slate-700">
+                    F{{ fibre.numero_fibre }} — {{ fibre.code_couleur_hex || 'Inconnue' }}
+                    <span v-if="fibre.etat" class="text-slate-400">({{ fibre.etat }})</span>
                   </div>
                 </div>
               </div>
@@ -154,7 +153,7 @@ const formaterLongueur = (v: number | string | null | undefined) => {
           </div>
 
           <!-- Aucune fibre -->
-          <div v-if="cable.fibres.length === 0" class="text-center py-8 text-gray-400">
+          <div v-if="cable.fibres.length === 0" class="text-center py-8 text-slate-500">
             <p class="text-4xl mb-2">📭</p>
             <p class="text-sm">Aucune fibre enregistrée pour ce câble</p>
           </div>
@@ -162,15 +161,15 @@ const formaterLongueur = (v: number | string | null | undefined) => {
       </div>
 
       <!-- Actions -->
-      <div v-if="cable && !chargement" class="p-3 border-t border-gray-200 bg-gray-50 flex gap-2" @mousedown.stop>
+      <div v-if="cable && !chargement" class="p-3 border-t border-[#2d3448] bg-[#252c3d] flex gap-2" @mousedown.stop>
         <button @mousedown.stop @click.stop="emit('modifierCable', cable.id)"
                 class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
-                       text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100">
+                       text-blue-300 bg-blue-950 border-blue-800 hover:bg-blue-900">
           ✏️ Modifier
         </button>
         <button @mousedown.stop @click.stop="emit('supprimerCable', cable.id, cable.nom_code)"
                 class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
-                       text-red-700 bg-red-50 border-red-200 hover:bg-red-100">
+                       text-red-400 bg-red-950 border-red-800 hover:bg-red-900">
           🗑 Supprimer
         </button>
       </div>
