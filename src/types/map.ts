@@ -57,6 +57,8 @@ export interface CableResum {
   technologie_transport: string | null
   statut_physique: string | null
   longueur_reelle_metres: number | null
+  odf_id: string | null
+  odf_nom: string | null
 }
 
 export interface EquipementResum {

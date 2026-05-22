@@ -10,8 +10,6 @@ defineProps<{
   chargement: boolean
   position: { x: number; y: number }
   cablesTransitUniques: CableResum[]
-  odfCableId: string | null
-  odfId: string | null
 }>()
 
 const emit = defineEmits<{
@@ -128,10 +126,10 @@ const emit = defineEmits<{
                     <span>{{ cable.technologie_transport || 'N/A' }}</span>
                     <span>{{ formaterLongueur(cable.longueur_reelle_metres) }}</span>
                   </div>
-                  <button v-if="cable.id === odfCableId && odfId"
-                          @click.stop="emit('ouvrirOdf', odfId)"
+                  <button v-if="cable.odf_id"
+                          @click.stop="emit('ouvrirOdf', cable.odf_id!)"
                           class="mt-1.5 w-full text-xs bg-green-100 hover:bg-green-200 text-green-700 font-bold py-1 px-2 rounded transition-colors">
-                    ✅ Voir ODF
+                    ✅ Voir ODF — {{ cable.odf_nom }}
                   </button>
                   <button v-else
                           @click.stop="emit('creerOdf', noeud.id, cable.id, cable.nom_code ?? '')"
