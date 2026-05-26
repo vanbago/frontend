@@ -5,6 +5,9 @@ import AuthService from '../services/auth'
 import type { CableInspection, Fibre, NormeCouleurs } from '../types/map'
 import { useCableEdit } from './useCableEdit'
 import type { Feature, FeatureCollection, Point } from 'geojson'
+import { useDistance } from './useDistance'
+import { useContextMenu } from './useContextMenu'
+import type { MenuItem } from './useContextMenu'
 
 
 const BASE_URL = AuthService.getBaseURL()
@@ -24,6 +27,18 @@ interface CentreApi {
     }
   }
 
+interface CableTemplate {
+  nom_code: string
+  capacite_fibres: number
+  norme_id: string | null
+  norme_code: string | null
+  technologie_transport: string
+  type_fibre: string | null
+  centre_proprietaire_id: string | null
+  centre_nom: string | null
+  nb_sections: number
+}
+
 interface PayloadCable {
     nom_code: string
     noeud_depart_id: string
@@ -34,9 +49,8 @@ interface PayloadCable {
     longueur_reelle_metres: number|null
     centre_proprietaire_id: string
     statut_physique: string
+    chambres_transit_ids?: string[]
     geometrie?: { type: 'LineString'; coordinates: number[][] }
-
-
 }
 
 
@@ -131,11 +145,13 @@ export const getStyleFibre = (fibre: Fibre, norme: NormeCouleurs | null) => {
   return DICTIONNAIRE_COULEURS["INCONNUE"]
 }
 
+const NOEUDS_STRUCTURELS = ['CENTRE', 'BTS', 'CLIENT']
+
 // =====================================================
 // COMPOSABLE
 // =====================================================
 
-export function useCables(map: ShallowRef<L.Map | null>) {
+export function useCables(map: ShallowRef<L.Map | null>, distance?: ReturnType<typeof useDistance>, contextMenu?: ReturnType<typeof useContextMenu>) {
   let calqueCables: L.GeoJSON | null = null
 
   // — Inspection câble —
@@ -158,12 +174,21 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     capacite_fibres: 96,
     norme_id: '',
     technologie_transport: 'FO',
+    type_fibre: '',
     longueur_reelle_metres: '',
     statut_physique: 'EN_SERVICE',
     centre_proprietaire_id: ''
   })
 
   const cableEnEditionId = ref<string | null>(null)
+
+  // — Templates câbles —
+  const modeCreation = ref<'nouveau' | 'continuer'>('nouveau')
+  const cableTemplateChoisi = ref<string>('')
+  const cablesTemplates = ref<CableTemplate[]>([])
+
+  // — Chambres de transit (ordre important) —
+  const chambresTransitIds = ref<string[]>([])
 
   // — Computed —
   const fibresParTube = computed(() => {
@@ -257,40 +282,62 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     if (calqueCables) carte.removeLayer(calqueCables)
 
     calqueCables = L.geoJSON(donneesGeoJson, {
-      style: (feature) => ({
-        color: couleurParCapacite(feature?.properties?.capacite_fibres),
-        weight: 3,
-        opacity: 0.9,
-      }),
+      style: (feature) => {
+        const departType     = feature?.properties?.noeud_depart_type ?? ''
+        const finType        = feature?.properties?.noeud_fin_type    ?? ''
+        const estStructurel  = NOEUDS_STRUCTURELS.includes(departType) || NOEUDS_STRUCTURELS.includes(finType)
+        return {
+          color:     couleurParCapacite(feature?.properties?.capacite_fibres),
+          weight:    3,
+          opacity:   0.85,
+          className: estStructurel ? 'cable-line cable-structurel' : 'cable-line cable-transit',
+        }
+      },
       onEachFeature: (feature, layer) => {
         const infos = feature.properties || {}
         const cableID = feature.id || infos.id || infos.url?.split('/').filter(Boolean).pop()
 
         const popupContent = document.createElement('div')
+        popupContent.className = 'noeud-popup-body'
         popupContent.innerHTML = `
-          <b class="text-blue-700 text-lg flex items-center gap-2">${infos.nom_code || 'Câble Inconnu'}</b>
-          <hr class="my-1 border-gray-300">
-          <p class="text-sm m-0"><b>Capacité :</b> ${infos.capacite_fibres || 'N/A'} fibres</p>
-          <p class="text-sm m-0"><b>Longueur :</b> ${formaterLongueur(infos.longueur_reelle_metres)}</p>
+          <div class="noeud-popup-titre">
+            <span>🔌</span>
+            <b>${infos.nom_code || 'Câble Inconnu'}</b>
+          </div>
+          <hr class="noeud-popup-hr">
+          <p class="noeud-popup-ligne"><span class="noeud-popup-key">Capacité</span><span>${infos.capacite_fibres || 'N/A'} fibres</span></p>
+          <p class="noeud-popup-ligne"><span class="noeud-popup-key">Longueur</span><span>${formaterLongueur(infos.longueur_reelle_metres)}</span></p>
         `
         const btn = document.createElement('button')
-        btn.className = 'mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors'
-        btn.textContent = 'Inspecter'
+        btn.className = 'noeud-popup-btn'
+        btn.textContent = '🔍 Inspecter'
         btn.onclick = () => {
           if (cableID) { carte.closePopup(); inspecterCable(cableID) }
           else alert("ID du câble introuvable")
         }
         popupContent.appendChild(btn)
-        layer.bindPopup(popupContent)
+        layer.bindPopup(popupContent, { className: 'noeud-popup' })
 
         const coul = couleurParCapacite(infos.capacite_fibres)
         layer.on('mouseover', () => (layer as L.Path).setStyle({ weight: 6, opacity: 1, color: coul }))
         layer.on('mouseout',  () => (layer as L.Path).setStyle({ weight: 3, opacity: 0.9, color: coul }))
 
-        // Clic droit → édition du tracé
         layer.on('contextmenu', (e: L.LeafletMouseEvent) => {
-          L.DomEvent.stop(e)
-          if (cableID) activerEditionCable(layer as L.Polyline, cableID, () => {})
+          e.originalEvent.preventDefault()
+          e.originalEvent.stopPropagation()
+          if (!cableID) return
+
+          if (contextMenu) {
+            map.value?.closePopup()
+            const items: MenuItem[] = [
+              { icon: '🖊️', label: 'Modifier le tracé',      action: () => activerEditionCable(layer as L.Polyline, cableID, () => {}) },
+              { icon: '📏', label: 'Distance entre 2 nœuds', action: () => distance?.demarrer(), separateurApres: true },
+              { icon: '🗑',  label: 'Supprimer le câble',     action: () => supprimerCable(cableID, infos.nom_code ?? cableID, () => {}), variant: 'danger' },
+            ]
+            contextMenu.afficher(items, e.originalEvent.clientX, e.originalEvent.clientY)
+          } else {
+            activerEditionCable(layer as L.Polyline, cableID, () => {})
+          }
         })
       }
     }).addTo(carte)
@@ -330,6 +377,50 @@ export function useCables(map: ShallowRef<L.Map | null>) {
   const idDepuisUrl = (url: string | null) =>
     url ? url.split('/').filter(Boolean).pop() ?? '' : ''
 
+  const chargerCablesTemplates = async () => {
+    try {
+      const response = await AuthService.apiCall(`${BASE_URL}/api/cables/templates/`)
+      if (!response.ok) throw new Error(`Erreur ${response.status}`)
+      cablesTemplates.value = await response.json()
+    } catch (erreur) {
+      console.error('❌ Échec chargement templates câbles:', erreur)
+    }
+  }
+
+  const ajouterChambreTransit = (chambreId: string) => {
+    if (!chambresTransitIds.value.includes(chambreId))
+      chambresTransitIds.value.push(chambreId)
+  }
+
+  const retirerChambreTransit = (chambreId: string) => {
+    chambresTransitIds.value = chambresTransitIds.value.filter(id => id !== chambreId)
+  }
+
+  const monterChambre = (index: number) => {
+    if (index === 0) return
+    const tmp = chambresTransitIds.value[index]
+    chambresTransitIds.value[index] = chambresTransitIds.value[index - 1]
+    chambresTransitIds.value[index - 1] = tmp
+  }
+
+  const descendreChambre = (index: number) => {
+    if (index === chambresTransitIds.value.length - 1) return
+    const tmp = chambresTransitIds.value[index]
+    chambresTransitIds.value[index] = chambresTransitIds.value[index + 1]
+    chambresTransitIds.value[index + 1] = tmp
+  }
+
+  const appliquerTemplate = (nomCode: string) => {
+    const t = cablesTemplates.value.find(x => x.nom_code === nomCode)
+    if (!t) return
+    formulaireCable.nom_code              = t.nom_code
+    formulaireCable.capacite_fibres       = t.capacite_fibres
+    formulaireCable.norme_id              = t.norme_id ?? ''
+    formulaireCable.technologie_transport = t.technologie_transport
+    formulaireCable.type_fibre            = t.type_fibre ?? ''
+    formulaireCable.centre_proprietaire_id = t.centre_proprietaire_id ?? ''
+  }
+
   
 
   const chargerCentres = async () => {
@@ -354,7 +445,9 @@ export function useCables(map: ShallowRef<L.Map | null>) {
   // — Panneau câble —
   const ouvrirPanneauCable = async () => {
     cableEnEditionId.value = null
-    await Promise.all([chargerNoeuds(), chargerNormes()])
+    modeCreation.value = 'nouveau'
+    cableTemplateChoisi.value = ''
+    await Promise.all([chargerNoeuds(), chargerNormes(), chargerCablesTemplates()])
     const rep = await AuthService.apiCall(`${BASE_URL}/api/utilisateurs/me/`)
     if (rep.ok) {
       const moi = await rep.json()
@@ -393,15 +486,19 @@ export function useCables(map: ShallowRef<L.Map | null>) {
   const fermerPanneauCable = () => {
     panneauCableOuvert.value = false
     cableEnEditionId.value = null
+    modeCreation.value = 'nouveau'
+    cableTemplateChoisi.value = ''
     formulaireCable.nom_code = ''
     formulaireCable.noeud_depart_id = ''
     formulaireCable.noeud_fin_id = ''
     formulaireCable.capacite_fibres = 96
     formulaireCable.norme_id = ''
     formulaireCable.technologie_transport = 'FO'
+    formulaireCable.type_fibre = ''
     formulaireCable.longueur_reelle_metres = ''
     formulaireCable.statut_physique = 'EN_SERVICE'
     formulaireCable.centre_proprietaire_id = ''
+    chambresTransitIds.value = []
   }
 
   const supprimerCable = async (cableID: string, nomCable: string, onSuccess: () => void) => {
@@ -442,7 +539,8 @@ export function useCables(map: ShallowRef<L.Map | null>) {
         statut_physique:        formulaireCable.statut_physique,
         centre_proprietaire_id: formulaireCable.centre_proprietaire_id,
         longueur_reelle_metres: formulaireCable.longueur_reelle_metres
-          ? parseFloat(formulaireCable.longueur_reelle_metres) : null
+          ? parseFloat(formulaireCable.longueur_reelle_metres) : null,
+        chambres_transit_ids: chambresTransitIds.value.length ? chambresTransitIds.value : undefined
       }
       if (geometrie) payload.geometrie = geometrie
 
@@ -480,5 +578,7 @@ export function useCables(map: ShallowRef<L.Map | null>) {
     dessinerCables, inspecterCable, fermerInspection, supprimerCable,
     getCouleurTube, getStyleFibre,
     ouvrirPanneauCable, ouvrirEditionCable, fermerPanneauCable, sauvegarderNouveauCable,
+    modeCreation, cableTemplateChoisi, cablesTemplates, appliquerTemplate,
+    chambresTransitIds, ajouterChambreTransit, retirerChambreTransit, monterChambre, descendreChambre,
   }
 }

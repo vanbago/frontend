@@ -9,21 +9,18 @@ const BASE_URL = AuthService.getBaseURL()
 // shallowRef évite que Vue enveloppe l'objet Leaflet dans un proxy profond
 const cableEnEdition = ref<string | null>(null)
 const polylineEnEdition = shallowRef<L.Polyline | null>(null)
+const latlngsOriginaux = shallowRef<L.LatLng[] | null>(null)
 
-// interface pour 
 declare module 'leaflet' {
     interface Polyline {
         enableEdit(): void
         disableEdit(): void
-        editor?: {revertLayer(): void}
     }
-
 }
 
 // Helpers pour les méthodes ajoutées par leaflet-editable (non typées dans @types/leaflet)
 const enableEdit  = (p: L.Polyline) => p.enableEdit()
 const disableEdit = (p: L.Polyline) => p.disableEdit()
-const revertLayer = (p: L.Polyline) => p.editor?.revertLayer()
 
 
 const getMap = (polyline: L.Polyline): L.Map | undefined => {
@@ -46,6 +43,8 @@ export function useCableEdit() {
 
         cableEnEdition.value = cableId
         polylineEnEdition.value = polyline
+        // Snapshot des coordonnées avant édition pour pouvoir annuler
+        latlngsOriginaux.value = (polyline.getLatLngs() as L.LatLng[]).map(ll => L.latLng(ll.lat, ll.lng))
 
         // Leaflet.Editable — activer l'édition sur cette polyline
         enableEdit(polyline)
@@ -104,8 +103,10 @@ export function useCableEdit() {
     // Annuler — restaurer la géométrie d'origine
     const annulerEdition = () => {
         if (!polylineEnEdition.value) return
-        // Leaflet.Editable garde l'historique — revertLayer() restaure
-        revertLayer(polylineEnEdition.value)
+        if (latlngsOriginaux.value) {
+            polylineEnEdition.value.setLatLngs(latlngsOriginaux.value)
+            polylineEnEdition.value.redraw()
+        }
         terminerEdition(polylineEnEdition.value)
     }
 
@@ -120,6 +121,7 @@ export function useCableEdit() {
         supprimerBarreEdition()
         cableEnEdition.value = null
         polylineEnEdition.value = null
+        latlngsOriginaux.value = null
     }
 
     // ── Barre flottante ─────────────────────────────────────────────────

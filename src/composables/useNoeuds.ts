@@ -4,6 +4,8 @@ import L from 'leaflet'
 import AuthService from '../services/auth'
 import type { CableResum, NoeudCentreInspection } from '../types/map'
 import type { FeatureCollection } from 'geojson'
+import { useDistance } from './useDistance'
+import { useContextMenu } from './useContextMenu'
 
 const BASE_URL = AuthService.getBaseURL()
 
@@ -54,7 +56,9 @@ interface PayloadNoeud {
 // COMPOSABLE
 // =====================================================
 
-export function useNoeuds(map: ShallowRef<L.Map | null>) {
+export function useNoeuds(map: ShallowRef<L.Map | null>, distance: ReturnType<typeof useDistance>
+  , contextMenu?: ReturnType<typeof useContextMenu>
+) {
   let calqueNoeuds: L.GeoJSON | null = null
 
   // — Inspection nœud —
@@ -142,8 +146,9 @@ const fermerPopupAjouterManchon = () => {
 
     calqueNoeuds = L.geoJSON(donneesGeoJson, {
       pointToLayer: (feature, latlng) => {
-        const type  = feature.properties?.type_noeud || ''
-        const style = styleParType(type)
+        const type       = feature.properties?.type_noeud || ''
+        const style      = styleParType(type)
+        const classeType = `noeud-marker noeud-marker-${type.toLowerCase()}`
 
         if (type === 'BTS') {
           const couleur = '#22d3ee'
@@ -165,7 +170,7 @@ const fermerPopupAjouterManchon = () => {
           return L.marker(latlng, {
             icon: L.divIcon({
               html: svg,
-              className: '',
+              className: classeType,
               iconSize:   [28, 38],
               iconAnchor: [14, 38],
               popupAnchor:[0, -38],
@@ -175,7 +180,8 @@ const fermerPopupAjouterManchon = () => {
 
         return L.circleMarker(latlng, {
           color: '#ffffff', weight: 2,
-          fillColor: style.fillColor, fillOpacity: 1, radius: style.radius
+          fillColor: style.fillColor, fillOpacity: 1, radius: style.radius,
+          className: classeType,
         })
       },
       onEachFeature: (feature, layer) => {
@@ -205,6 +211,20 @@ const fermerPopupAjouterManchon = () => {
         popupContent.appendChild(btn)
         layer.bindPopup(popupContent, { className: 'noeud-popup' })
 
+        layer.on('contextmenu', (e: L.LeafletMouseEvent) => {
+          e.originalEvent.preventDefault()
+          e.originalEvent.stopPropagation()
+          if (!noeudId) return
+          map.value?.closePopup()
+          contextMenu?.afficher([
+            { icon: '📏', label: 'Mesurer distance depuis ici', action: () => {
+              distance?.demarrer()
+              distance?.capturerNoeud({ id: noeudId, nom: infos.nom_code ?? noeudId })
+            }},
+            { icon: '🗑', label: 'Supprimer',               action: () => supprimerNoeud(noeudId, infos.nom_code ?? noeudId, () => {}), variant: 'danger' },
+          ], e.originalEvent.clientX, e.originalEvent.clientY)
+        })
+
         const nom  = infos.nom_code
         const type = infos.type_noeud || 'AUTRE'
         if (nom) {
@@ -219,6 +239,24 @@ const fermerPopupAjouterManchon = () => {
     }).addTo(carte)
 
     calqueNoeuds.bringToFront()
+
+    // Intercepte les ouvertures de popup en mode distance pour capturer le nœud
+    calqueNoeuds.on('popupopen', (e: L.PopupEvent) => {
+     if (!distance?.actif.value) return  // mode normal : laisser le popup ouvert
+  
+     const layer = e.layer as L.Layer & { feature?: GeoJSON.Feature }
+     const feature = layer.feature
+     if (!feature) return
+
+     const noeudId = feature.id as string
+                ?? (feature.properties as Record<string, unknown>)?.id as string
+     const nom = (feature.properties as Record<string, unknown>)?.nom_code as string
+            ?? noeudId
+
+     // Ferme le popup et capture le nœud
+      map.value?.closePopup()
+      distance.capturerNoeud({ id: noeudId, nom })
+   })
 
     const ajusterClasseZoom = () => {
       const container = carte.getContainer()

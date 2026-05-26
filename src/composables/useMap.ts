@@ -28,6 +28,10 @@ export function useMap() {
 
     map.value = L.map('map', { center: centreCoordonnees, zoom: 13, zoomControl: true, editable: true } as MapoptionsEditable)
 
+    map.value.getContainer().addEventListener('contextmenu', (e) => {
+      e.preventDefault()
+    })
+
     L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; OpenStreetMap contributors',
       maxZoom: 20

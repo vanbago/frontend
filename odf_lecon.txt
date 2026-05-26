@@ -1,0 +1,136 @@
+======================================================
+LEÇON — MODÉLISATION ODF (Patch Panel Optique)
+======================================================
+
+## CONTEXTE
+Un ODF (Optical Distribution Frame) est une grille de ports.
+Chaque port a une position (ligne, colonne) et peut accueillir une fibre.
+Le technicien choisit le nombre de lignes et de colonnes (max 12 colonnes).
+
+------------------------------------------------------
+## 1. MODÈLE PORT (Django)
+------------------------------------------------------
+
+Pourquoi un modèle séparé et pas un champ JSON ?
+→ Chaque port doit être adressable, filtrable et modifiable individuellement.
+→ JSON = on charge tout, on modifie tout, on resauvegarde tout (lourd).
+→ Modèle = on modifie une seule ligne en base (efficace).
+
+class Port(models.Model):
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    odf_port   = models.ForeignKey(Boitiers, on_delete=models.CASCADE, related_name='ports')
+    fibre_port = models.ForeignKey(Fibres, on_delete=models.SET_NULL, null=True, blank=True)
+    ligne_port   = models.IntegerField()
+    colonne_port = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.odf_port.nom_reference} - L{self.ligne_port}C{self.colonne_port}"
+
+    class Meta:
+        managed = True
+        db_table = 'ports'
+        constraints = [
+            # Un seul port par position dans un ODF
+            models.UniqueConstraint(
+                fields=['odf_port', 'ligne_port', 'colonne_port'],
+                name='unique_port_position'
+            ),
+            # Une fibre ne peut occuper qu'un seul port (ignorer les ports vides)
+            models.UniqueConstraint(
+                fields=['fibre_port'],
+                condition=models.Q(fibre_port__isnull=False),
+                name='unique_fibre_port'
+            ),
+        ]
+
+POINTS CLÉS :
+- CASCADE sur odf_port → si l'ODF est supprimé, tous ses ports sont supprimés
+- SET_NULL sur fibre_port → si une fibre est supprimée, le port devient vide (pas supprimé)
+- related_name='ports' → permet d'écrire odf.ports.all() et PortSerializer(many=True)
+
+------------------------------------------------------
+## 2. SERIALIZERS
+------------------------------------------------------
+
+class PortSerializer(serializers.HyperlinkedModelSerializer):
+    url        = serializers.HyperlinkedIdentityField(view_name='port-detail', read_only=True)
+    fibre_port = FibreSerializer(read_only=True)  # objet imbriqué, pas many=True
+
+    class Meta:
+        model  = Port
+        fields = ['id', 'url', 'ligne_port', 'colonne_port', 'fibre_port']
+
+class OdfDetailSerializer(serializers.HyperlinkedModelSerializer):
+    url        = serializers.HyperlinkedIdentityField(view_name='boitiers-detail', read_only=True)
+    type_label = serializers.CharField(source='get_type_boitier_display', read_only=True)
+    ports      = PortSerializer(many=True, read_only=True)  # many=True car un ODF a plusieurs ports
+
+    class Meta:
+        model  = Boitiers
+        fields = ['id', 'url', 'nom_reference', 'type_boitier', 'type_label',
+                  'nombre_cassettes', 'etat', 'date_installation', 'ports']
+
+DIFFÉRENCE many=True vs sans many :
+- many=True  → relation un-à-plusieurs (ODF → plusieurs ports)
+- sans many  → relation plusieurs-à-un ou un-à-un (Port → une seule fibre)
+
+------------------------------------------------------
+## 3. ODFVIEWSET — ACTIONS CUSTOM
+------------------------------------------------------
+
+Actions custom nécessaires :
+1. placer_fibre  (PATCH) — assigner une fibre à un port
+2. deplacer_fibre (PATCH) — changer la position d'une fibre
+3. retirer_fibre  (PATCH) — libérer un port
+
+Payload placer_fibre :
+{ "fibre_id": "uuid", "ligne": 1, "colonne": 3 }
+
+------------------------------------------------------
+## 4. ACTION placer_fibre (version améliorée)
+------------------------------------------------------
+
+@action(detail=True, methods=['patch'], url_path='placer_fibre')
+def placer_fibre(self, request, pk=None):
+    odf = self.get_object()
+
+    # 1. Validation fibre_id présent
+    fibre_id = request.data.get('fibre_id')
+    if not fibre_id:
+        return Response({'erreur': 'fibre_id est obligatoire.'}, status=400)
+
+    # 2. Vérifier que la fibre existe
+    try:
+        fibre = Fibres.objects.get(id=fibre_id)
+    except Fibres.DoesNotExist:
+        return Response({'erreur': f'Fibre {fibre_id} introuvable.'}, status=404)
+
+    # 3. Vérifier que la fibre n'est pas déjà placée ailleurs
+    if Port.objects.filter(fibre_port=fibre).exists():
+        return Response({'erreur': 'Cette fibre est déjà placée sur un autre port.'}, status=400)
+
+    # 4. Trouver un port vide
+    port = odf.ports.filter(fibre_port__isnull=True).first()
+    if not port:
+        return Response({'erreur': f"L'ODF {odf.nom_reference} est plein."}, status=400)
+
+    # 5. Placer la fibre
+    port.fibre_port = fibre
+    port.save()
+
+    return Response({
+        'message':      f"Fibre placée sur le port L{port.ligne_port}-C{port.colonne_port}.",
+        'port_id':      str(port.id),
+        'ligne_port':   port.ligne_port,
+        'colonne_port': port.colonne_port,
+    }, status=200)
+
+------------------------------------------------------
+## PROCHAINES ÉTAPES (demain)
+------------------------------------------------------
+1. Action deplacer_fibre
+2. Action retirer_fibre
+3. Tester les endpoints avec Postman/DRF browsable API
+4. Passer au frontend (types, composable useOdf, composant InspectionOdf.vue)
+
+======================================================

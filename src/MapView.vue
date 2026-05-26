@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from './services/auth'
 import { useDrag } from './composables/useDrag'
@@ -8,6 +8,8 @@ import { useCables } from './composables/useCables'
 import { useNoeuds } from './composables/useNoeuds'
 import { useInspection } from './composables/useInspection'
 import { useReseauStore } from './stores/reseau'
+import { useDistance } from './composables/useDistance'
+import { useContextMenu } from './composables/useContextMenu'
 import 'leaflet-editable'
 
 import LegendeMap from './components/map/LegendeMap.vue'
@@ -31,10 +33,24 @@ const { fenetres, demarrerDrag } = useDrag()
 const { map, utilisateurNom, initMap, dessinerFrontiere } = useMap()
 const store = useReseauStore()
 
-const cables = useCables(map)
-const noeuds = useNoeuds(map)
+const contextMenu = useContextMenu()
+
+const positionMenuAjustee = computed(() => {
+  const x = contextMenu.position.x
+  const y = contextMenu.position.y
+  return {
+    left: Math.min(x, window.innerWidth  - 240) + 'px',
+    top:  Math.min(y, window.innerHeight - 200) + 'px',
+  }
+})
+
+const distance = useDistance()
+const cables = useCables(map, distance, contextMenu)
+const noeuds = useNoeuds(map, distance, contextMenu)
 const inspection = useInspection()
 const odf = useOdf()
+
+
 
 const chargerInfrastructure = async () => {
   await store.chargerInfrastructure()
@@ -132,6 +148,127 @@ onUnmounted(() => { map.value?.remove() })
 
       <!-- LÉGENDE -->
       <LegendeMap />
+      <!-- Bannière mode distance active -->
+<transition
+  enter-active-class="transition-all duration-200"
+  enter-from-class="opacity-0 -translate-y-2"
+  enter-to-class="opacity-100 translate-y-0"
+  leave-active-class="transition-all duration-150"
+  leave-from-class="opacity-100"
+  leave-to-class="opacity-0"
+>
+  <div v-if="distance.actif.value"
+       class="absolute top-4 left-1/2 -translate-x-1/2 z-[6000] bg-amber-500 text-white px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-3">
+    <span class="text-lg">📏</span>
+    <div class="text-sm">
+      <p class="font-bold">
+        {{ distance.etape.value === 'attend_premier'
+           ? 'Cliquez le premier nœud'
+           : 'Cliquez le deuxième nœud' }}
+      </p>
+      <p v-if="distance.premierNoeud.value" class="text-amber-100 text-xs">
+        Premier : <b>{{ distance.premierNoeud.value.nom }}</b>
+      </p>
+    </div>
+    <button @click="distance.annuler"
+            class="ml-2 text-amber-100 hover:text-white text-xs font-bold border border-amber-300 rounded px-2 py-1">
+      Annuler
+    </button>
+  </div>
+</transition>
+
+<!-- Modal de résultat -->
+<transition
+  enter-active-class="transition-all duration-200"
+  enter-from-class="opacity-0 scale-95"
+  enter-to-class="opacity-100 scale-100"
+  leave-active-class="transition-all duration-150"
+  leave-from-class="opacity-100 scale-100"
+  leave-to-class="opacity-0 scale-95"
+>
+  <div v-if="distance.etape.value === 'resultat' || distance.etape.value === 'calcul'"
+       class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6500] bg-white rounded-xl shadow-2xl border border-gray-300 overflow-hidden"
+       style="width: 380px;">
+    
+    <div class="bg-amber-50 px-4 py-3 border-b border-amber-200 flex justify-between items-center">
+      <h3 class="font-bold text-amber-800 text-sm flex items-center gap-2">
+        📏 Distance calculée
+      </h3>
+      <button @click="distance.fermerResultat"
+              class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none">&times;</button>
+    </div>
+
+    <div class="p-4">
+      <!-- Calcul en cours -->
+      <div v-if="distance.etape.value === 'calcul'" class="text-center py-6">
+        <div class="animate-spin rounded-full h-10 w-10 border-4 border-amber-500 border-t-transparent mx-auto"></div>
+        <p class="text-xs text-gray-500 mt-3">Calcul de la distance optique...</p>
+      </div>
+
+      <!-- Erreur -->
+      <div v-else-if="distance.erreur.value" class="text-center py-4">
+        <p class="text-3xl mb-2">⚠️</p>
+        <p class="text-sm text-red-700 font-medium">{{ distance.erreur.value }}</p>
+      </div>
+
+      <!-- Résultat -->
+      <div v-else-if="distance.resultat.value" class="space-y-3">
+        <!-- Distance principale en grand -->
+        <div class="text-center py-3 bg-amber-50 rounded-lg border border-amber-200">
+          <p class="text-3xl font-bold text-amber-700">{{ distance.resultat.value.distance_lisible }}</p>
+          <p class="text-[10px] text-amber-600 uppercase mt-1">distance optique</p>
+        </div>
+
+        <!-- Détails -->
+        <div class="text-xs space-y-1.5 bg-gray-50 rounded-lg p-3 border border-gray-200">
+          <div class="flex justify-between">
+            <span class="text-gray-500">De :</span>
+            <span class="font-medium text-gray-800">{{ distance.premierNoeud.value?.nom }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">À :</span>
+            <span class="font-medium text-gray-800">{{ distance.secondNoeud.value?.nom }}</span>
+          </div>
+          <div class="flex justify-between border-t border-gray-200 pt-1.5 mt-1.5">
+            <span class="text-gray-500">Câble :</span>
+            <span class="font-medium text-indigo-700">{{ distance.resultat.value.cable_nom }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Type :</span>
+            <span class="font-medium" 
+                  :class="distance.resultat.value.type === 'direct' ? 'text-green-700' : 'text-amber-700'">
+              {{ distance.resultat.value.type === 'direct' ? '✓ Liaison directe' : '↪ En transit' }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Source :</span>
+            <span class="font-medium text-gray-700">
+              {{ distance.resultat.value.source === 'mesure_terrain' 
+                 ? '📏 Mesure terrain'
+                 : '🗺 Calcul géométrique' }}
+            </span>
+          </div>
+        </div>
+
+        <p v-if="distance.resultat.value.source === 'calcul_geometrique'"
+           class="text-[10px] text-gray-500 italic text-center">
+          Estimation depuis le tracé GPS. La mesure OTDR terrain serait plus précise.
+        </p>
+      </div>
+    </div>
+
+    <div class="p-3 border-t border-gray-200 bg-gray-50 flex justify-end gap-2">
+      <button @click="distance.demarrer"
+              class="px-3 py-1.5 text-xs font-bold text-amber-700 bg-white border border-amber-300 rounded hover:bg-amber-50">
+        🔄 Nouvelle mesure
+      </button>
+      <button @click="distance.fermerResultat"
+              class="px-3 py-1.5 text-xs font-bold text-white bg-amber-600 rounded hover:bg-amber-700">
+        Fermer
+      </button>
+    </div>
+  </div>
+</transition>
 
       <!-- OUTILS CARTE (haut droite) -->
       <div class="absolute top-4 right-4 z-[1000] rounded-xl shadow-xl flex flex-col gap-0.5 p-1.5 border"
@@ -249,10 +386,46 @@ onUnmounted(() => { map.value?.remove() })
           <div class="p-4 flex-1 overflow-y-auto flex flex-col gap-3" @mousedown.stop>
             <p class="text-xs text-slate-400 mb-2 font-medium">Créez un câble en reliant deux nœuds existants.</p>
 
+            <!-- Mode de création : uniquement pour un nouveau câble -->
+            <div v-if="!cables.cableEnEditionId.value" class="bg-[#252c3d] rounded-lg p-2.5 border border-[#3a4257]">
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">Mode de création</label>
+              <div class="space-y-1.5">
+                <label class="flex items-center gap-2 cursor-pointer text-xs hover:bg-[#2d3448] rounded p-1">
+                  <input type="radio" v-model="cables.modeCreation.value" value="nouveau" class="accent-blue-500">
+                  <span class="font-medium text-slate-200">📦 Nouveau câble</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-xs hover:bg-[#2d3448] rounded p-1">
+                  <input type="radio" v-model="cables.modeCreation.value" value="continuer" class="accent-blue-500">
+                  <span class="font-medium text-slate-200">➕ Continuer un câble existant</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Sélecteur de câble à continuer -->
+            <div v-if="!cables.cableEnEditionId.value && cables.modeCreation.value === 'continuer'"
+                 class="bg-blue-950 rounded-lg p-2.5 border border-blue-800">
+              <label class="block text-xs font-bold text-blue-300 mb-1">Câble à continuer</label>
+              <select v-model="cables.cableTemplateChoisi.value"
+                      @change="cables.appliquerTemplate(cables.cableTemplateChoisi.value)"
+                      class="w-full text-xs p-1.5 border border-blue-700 rounded outline-none focus:ring-1 focus:ring-blue-500 bg-[#252c3d] text-slate-200">
+                <option value="">-- Sélectionner un câble --</option>
+                <option v-for="t in cables.cablesTemplates.value" :key="t.nom_code" :value="t.nom_code">
+                  {{ t.nom_code }} — {{ t.capacite_fibres }} FO ({{ t.nb_sections }} section{{ t.nb_sections > 1 ? 's' : '' }})
+                </option>
+              </select>
+              <p v-if="cables.cableTemplateChoisi.value" class="text-[10px] text-blue-400 mt-1">
+                ✓ Propriétés copiées automatiquement. Choisissez juste les nœuds de cette section.
+              </p>
+              <p v-else class="text-[10px] text-blue-500 mt-1">
+                Le nom, la capacité, la norme et le centre seront repris du câble choisi.
+              </p>
+            </div>
+
             <div>
               <label class="block text-xs font-bold text-slate-300 mb-1">Nom / Code du câble</label>
               <input v-model="cables.formulaireCable.nom_code" type="text" placeholder="Ex: CABLE_MBA_YAO_001"
-                     class="w-full text-sm p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none placeholder-slate-600">
+                     :disabled="cables.modeCreation.value === 'continuer'"
+                     class="w-full text-sm p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none placeholder-slate-600 disabled:bg-[#1e2433] disabled:text-slate-500 disabled:cursor-not-allowed">
             </div>
 
             <div>
@@ -346,6 +519,42 @@ onUnmounted(() => { map.value?.remove() })
               <label class="block text-xs font-bold text-slate-300 mb-1">Longueur (mètres)</label>
               <input v-model="cables.formulaireCable.longueur_reelle_metres" type="number" placeholder="Ex: 12500"
                      class="w-full text-sm p-1.5 bg-[#252c3d] border border-[#3a4257] text-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none placeholder-slate-600">
+            </div>
+
+            <!-- Chambres de transit (optionnel, ordonné) -->
+            <div class="bg-[#2a2410] border border-amber-800 rounded-lg p-2.5">
+              <label class="block text-xs font-bold text-amber-400 mb-1.5">
+                🔹 Chambres de transit
+                <span class="font-normal text-amber-600">(optionnel, dans l'ordre du tracé)</span>
+              </label>
+
+              <!-- Liste ordonnée des chambres sélectionnées -->
+              <div v-if="cables.chambresTransitIds.value.length > 0" class="space-y-1 mb-2">
+                <div v-for="(chambreId, index) in cables.chambresTransitIds.value" :key="chambreId"
+                     class="flex items-center gap-1 bg-[#252c3d] rounded border border-amber-800 px-2 py-1">
+                  <span class="text-[10px] text-amber-500 font-bold w-4">{{ index + 1 }}</span>
+                  <span class="text-xs text-slate-200 flex-1 truncate">
+                    {{ cables.noeudsDisponibles.value.find(n => n.id === chambreId)?.nom ?? chambreId }}
+                  </span>
+                  <button @click="cables.monterChambre(index)" :disabled="index === 0"
+                          class="text-amber-400 hover:text-amber-200 disabled:opacity-30 text-xs">▲</button>
+                  <button @click="cables.descendreChambre(index)"
+                          :disabled="index === cables.chambresTransitIds.value.length - 1"
+                          class="text-amber-400 hover:text-amber-200 disabled:opacity-30 text-xs">▼</button>
+                  <button @click="cables.retirerChambreTransit(chambreId)"
+                          class="text-red-400 hover:text-red-300 text-xs">×</button>
+                </div>
+              </div>
+
+              <!-- Sélecteur pour ajouter une chambre -->
+              <select @change="cables.ajouterChambreTransit(($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).value = ''"
+                      class="w-full text-xs p-1.5 border border-amber-700 rounded outline-none focus:ring-1 focus:ring-amber-500 bg-[#252c3d] text-slate-200">
+                <option value="">+ Ajouter une chambre de transit</option>
+                <option v-for="noeud in cables.noeudsDisponibles.value.filter(n => n.type === 'CHAMBRE' && !cables.chambresTransitIds.value.includes(n.id))"
+                        :key="noeud.id" :value="noeud.id">
+                  🔵 {{ noeud.nom }}
+                </option>
+              </select>
             </div>
           </div>
 
@@ -563,6 +772,38 @@ onUnmounted(() => { map.value?.remove() })
         </div>
       </transition>
 
+      <!-- Menu contextuel global -->
+     <transition
+        enter-active-class="transition-all duration-100"
+        enter-from-class="opacity-0 scale-95"
+         enter-to-class="opacity-100 scale-100">
+        <div v-if="contextMenu.visible.value"
+            class="fixed z-[9999] bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden py-1 min-w-[220px]"
+           :style="positionMenuAjustee"
+           @click.stop>
+          <template v-for="(item, i) in contextMenu.items.value" :key="i">
+           <button @click="contextMenu.executerItem(item)"
+              class="w-full px-3 py-2 text-left text-sm flex items-center gap-3 transition-colors"
+              :class="{
+                'hover:bg-gray-100 text-gray-800': item.variant === 'default' || !item.variant,
+                'hover:bg-red-50 text-red-700': item.variant === 'danger',
+                'hover:bg-amber-50 text-amber-700 font-semibold': item.variant === 'highlight',
+              }">
+                <span class="text-base w-5 text-center">{{ item.icon }}</span>
+               <span>{{ item.label }}</span>
+             </button>
+            <div v-if="item.separateurApres" class="border-t border-gray-200 my-1"></div>
+            </template>
+           </div>
+     </transition>
+
+<!-- Backdrop transparent qui ferme le menu sur clic externe -->
+<div v-if="contextMenu.visible.value"
+     class="fixed inset-0 z-[9998]"
+     @click="contextMenu.fermer"
+     @contextmenu.prevent="contextMenu.fermer">
+</div>
+
 
     </main>
   </div>
@@ -609,6 +850,24 @@ onUnmounted(() => { map.value?.remove() })
 /* Zoom < 15 : seuls CENTRE et BTS visibles */
 .leaflet-container:not(.zoom-detaille) .leaflet-tooltip.noeud-label:not(.noeud-label-centre):not(.noeud-label-bts) {
   display: none;
+}
+
+/* ── Vue ensemble (zoom < 15) ─────────────────────────────────
+   On ne montre QUE les nœuds structurels (CENTRE, BTS, CLIENT)
+   et les câbles qui en sortent. Tout le reste est masqué.
+*/
+.leaflet-container:not(.zoom-detaille) .noeud-marker:not(.noeud-marker-centre):not(.noeud-marker-bts):not(.noeud-marker-client) {
+  display: none;
+}
+
+.leaflet-container:not(.zoom-detaille) .cable-transit {
+  display: none;
+}
+
+/* Câbles structurels plus marqués en vue ensemble */
+.leaflet-container:not(.zoom-detaille) .cable-structurel {
+  stroke-width: 4px;
+  opacity: 1;
 }
 
 /* ── Popup nœud sombre ───────────────────────────────── */

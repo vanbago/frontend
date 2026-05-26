@@ -12,6 +12,7 @@ export function useInspection() {
   const manchonIdEnMatrice = ref<string | null>(null)
   const chargementMatrice = ref(false)
   const manchonEstEnAttente = ref(false)
+  const sourceMatrice = ref<'manchon' | 'noeud'>('manchon')
 
   // — Filtres —
   const filtreCableSource = ref('')
@@ -42,6 +43,7 @@ export function useInspection() {
       afficherMatrice.value = true
       manchonIdEnMatrice.value = manchonId
       manchonNomEnMatrice.value = manchonNom ?? manchonId
+      sourceMatrice.value = 'manchon'
       const response = await AuthService.apiCall(`${BASE_URL}/api/manchons/${manchonId}/matrice/`)
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
       const data: ContenuMatrice = await response.json()
@@ -63,6 +65,7 @@ export function useInspection() {
       afficherMatrice.value = true
       manchonIdEnMatrice.value = noeudId
       manchonNomEnMatrice.value = noeudNom ?? noeudId
+      sourceMatrice.value = 'noeud'
       const response = await AuthService.apiCall(`${BASE_URL}/api/noeuds/${noeudId}/matrice/`)
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
       manchonEnMatrice.value = await response.json()
@@ -91,6 +94,14 @@ export function useInspection() {
     modeSoudure.fibreSource = null
   }
 
+  const rafraichirMatrice = () => {
+    if (!manchonIdEnMatrice.value) return
+    if (sourceMatrice.value === 'noeud')
+      voirSouduresNoeud(manchonIdEnMatrice.value, manchonNomEnMatrice.value ?? undefined)
+    else
+      voirSoudures(manchonIdEnMatrice.value, manchonNomEnMatrice.value ?? undefined)
+  }
+
   const creerSoudure = async (fibreEntranteId: string, fibreSortanteId: string) => {
     try {
       const response = await AuthService.apiCall(`${BASE_URL}/api/soudures/`, {
@@ -100,7 +111,7 @@ export function useInspection() {
       })
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
       annulerSoudure()
-      if (manchonIdEnMatrice.value) await voirSoudures(manchonIdEnMatrice.value, manchonNomEnMatrice.value ?? undefined)
+      rafraichirMatrice()
     } catch (erreur) {
       console.error('❌ Échec création soudure:', erreur)
       alert('Impossible de créer la soudure')
@@ -124,7 +135,7 @@ export function useInspection() {
     try {
       const response = await AuthService.apiCall(`${BASE_URL}/api/soudures/${soudureId}/`, { method: 'DELETE' })
       if (!response.ok) throw new Error(`Erreur ${response.status}`)
-      if (manchonIdEnMatrice.value) await voirSoudures(manchonIdEnMatrice.value, manchonNomEnMatrice.value ?? undefined)
+      rafraichirMatrice()
     } catch (erreur) {
       console.error('❌ Échec suppression soudure:', erreur)
       alert('Impossible de supprimer la soudure')
