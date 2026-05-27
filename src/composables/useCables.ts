@@ -8,6 +8,7 @@ import type { Feature, FeatureCollection, Point } from 'geojson'
 import { useDistance } from './useDistance'
 import { useContextMenu } from './useContextMenu'
 import type { MenuItem } from './useContextMenu'
+import { useInsertionNoeud } from './useInsertionNoeud'
 
 
 const BASE_URL = AuthService.getBaseURL()
@@ -151,7 +152,7 @@ const NOEUDS_STRUCTURELS = ['CENTRE', 'BTS', 'CLIENT']
 // COMPOSABLE
 // =====================================================
 
-export function useCables(map: ShallowRef<L.Map | null>, distance?: ReturnType<typeof useDistance>, contextMenu?: ReturnType<typeof useContextMenu>) {
+export function useCables(map: ShallowRef<L.Map | null>, distance?: ReturnType<typeof useDistance>, contextMenu?: ReturnType<typeof useContextMenu>, insertion?: ReturnType<typeof useInsertionNoeud>) {
   let calqueCables: L.GeoJSON | null = null
 
   // — Inspection câble —
@@ -330,9 +331,10 @@ export function useCables(map: ShallowRef<L.Map | null>, distance?: ReturnType<t
           if (contextMenu) {
             map.value?.closePopup()
             const items: MenuItem[] = [
-              { icon: '🖊️', label: 'Modifier le tracé',      action: () => activerEditionCable(layer as L.Polyline, cableID, () => {}) },
-              { icon: '📏', label: 'Distance entre 2 nœuds', action: () => distance?.demarrer(), separateurApres: true },
-              { icon: '🗑',  label: 'Supprimer le câble',     action: () => supprimerCable(cableID, infos.nom_code ?? cableID, () => {}), variant: 'danger' },
+              { icon: '🖊️', label: 'Modifier le tracé',            action: () => activerEditionCable(layer as L.Polyline, cableID, () => {}) },
+              { icon: '⚡',  label: 'Insérer un nœud sur ce câble', action: () => insertion?.demarrer(cableID, infos.nom_code ?? cableID), separateurApres: true },
+              { icon: '📏', label: 'Distance entre 2 nœuds',       action: () => distance?.demarrer(), separateurApres: true },
+              { icon: '🗑',  label: 'Supprimer le câble',           action: () => supprimerCable(cableID, infos.nom_code ?? cableID, () => {}), variant: 'danger' },
             ]
             contextMenu.afficher(items, e.originalEvent.clientX, e.originalEvent.clientY)
           } else {

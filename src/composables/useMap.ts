@@ -3,6 +3,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import AuthService from '../services/auth'
 import type { FeatureCollection } from 'geojson'
+import { useInsertionNoeud } from './useInsertionNoeud'
 
 interface MapoptionsEditable extends L.MapOptions {
     editable?: boolean
@@ -14,7 +15,7 @@ export function useMap() {
   const map = shallowRef<L.Map | null>(null)
   const utilisateurNom = ref<string | null>(null)
 
-  const initMap = async () => {
+  const initMap = async (insertion?: ReturnType<typeof useInsertionNoeud>) => {
     // Charger le profil utilisateur
     const repMe = await AuthService.apiCall(`${BASE_URL}/api/utilisateurs/me/`)
     if (repMe.ok) {
@@ -43,6 +44,10 @@ export function useMap() {
       .bindPopup('<b>Centre de transmission de Mbalmayo</b><br>Mbalmayo, Cameroun')
 
     map.value.on('click', (e: L.LeafletMouseEvent) => {
+      if (insertion?.actif.value) {
+        insertion.capturerPoint(e.latlng.lat, e.latlng.lng)
+        return
+      }
       const lat = e.latlng.lat.toFixed(6)
       const lng = e.latlng.lng.toFixed(6)
       L.popup()

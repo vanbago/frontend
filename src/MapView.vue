@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from './services/auth'
 import { useDrag } from './composables/useDrag'
@@ -22,6 +22,7 @@ import FormulaireOdf from './components/map/FormulaireOdf.vue'
 import PickerFibre from './components/map/PickerFibre.vue'
 import { DICTIONNAIRE_COULEURS } from './composables/useCables'
 import { useOdf } from './composables/useOdf'
+import { useInsertionNoeud } from './composables/useInsertionNoeud'
 
 
 // ===== ROUTER =====
@@ -44,12 +45,13 @@ const positionMenuAjustee = computed(() => {
   }
 })
 
+
+const insertion = useInsertionNoeud()
 const distance = useDistance()
-const cables = useCables(map, distance, contextMenu)
+const cables = useCables(map, distance, contextMenu, insertion)
 const noeuds = useNoeuds(map, distance, contextMenu)
 const inspection = useInspection()
 const odf = useOdf()
-
 
 
 const chargerInfrastructure = async () => {
@@ -96,8 +98,7 @@ const onSauvegarderOdf = async () => {
 const onInspecterCable = (id: string) => cables.inspecterCable(id)
 const onVoirSoudures = (manchonId: string, manchonNom?: string, enAttente?: boolean) => inspection.voirSoudures(manchonId, manchonNom, enAttente)
 const onVoirSouduresNoeud = (noeudId: string, noeudNom?: string) => inspection.voirSouduresNoeud(noeudId, noeudNom)
-const onInstallerManchon = (noeudId: string) => alert(`Fonctionnalité à venir : Installer manchon dans le nœud ${noeudId}`)
-const onAjouterManchon = (noeudId: string) => {
+const onInstallerOuAjouterManchon = (noeudId: string) => {
   const noeud = noeuds.noeudEnInspection.value
   const nom = noeud?.nom_code ?? noeudId
   const cables = noeuds.cablesTransitUniques.value
@@ -105,8 +106,14 @@ const onAjouterManchon = (noeudId: string) => {
 }
 
 // ===== CYCLE DE VIE =====
+watch(() => insertion.actif.value, (actif) => {
+  const container = map.value?.getContainer()
+  if (!container) return
+  container.classList.toggle('mode-insertion', actif)
+})
+
 onMounted(async () => {
-  await initMap()
+  await initMap(insertion)
   dessinerFrontiere()
   chargerInfrastructure()
   await noeuds.chargerCentres()
@@ -264,6 +271,132 @@ onUnmounted(() => { map.value?.remove() })
       </button>
       <button @click="distance.fermerResultat"
               class="px-3 py-1.5 text-xs font-bold text-white bg-amber-600 rounded hover:bg-amber-700">
+        Fermer
+      </button>
+    </div>
+  </div>
+</transition>
+
+      <!-- Bannière mode insertion actif -->
+<transition
+  enter-active-class="transition-all duration-200"
+  enter-from-class="opacity-0 -translate-y-2"
+  enter-to-class="opacity-100 translate-y-0"
+>
+  <div v-if="insertion.actif.value"
+       class="absolute top-4 left-1/2 -translate-x-1/2 z-[6000] bg-indigo-600 text-white px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-3">
+    <span class="text-lg">⚡</span>
+    <div class="text-sm">
+      <p class="font-bold">Cliquez le tracé du câble pour insérer un nœud</p>
+      <p class="text-indigo-200 text-xs">
+        Câble : <b>{{ insertion.cableCible.value?.nom }}</b>
+      </p>
+    </div>
+    <button @click="insertion.annuler"
+            class="ml-2 text-indigo-200 hover:text-white text-xs font-bold border border-indigo-400 rounded px-2 py-1">
+      Annuler
+    </button>
+  </div>
+</transition>
+
+<!-- Modal formulaire d'insertion -->
+<transition
+  enter-active-class="transition-all duration-200"
+  enter-from-class="opacity-0 scale-95"
+  enter-to-class="opacity-100 scale-100"
+>
+  <div v-if="['formulaire', 'envoi', 'resultat'].includes(insertion.etape.value)"
+       class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[6500] bg-white rounded-xl shadow-2xl border border-gray-300 overflow-hidden"
+       style="width: 400px;">
+
+    <div class="bg-indigo-50 px-4 py-3 border-b border-indigo-200 flex justify-between items-center">
+      <h3 class="font-bold text-indigo-800 text-sm flex items-center gap-2">
+        ⚡ Insérer un nœud sur le câble
+      </h3>
+      <button @click="insertion.annuler"
+              class="text-gray-400 hover:text-red-500 text-xl font-bold leading-none">&times;</button>
+    </div>
+
+    <div class="p-4 space-y-3">
+      <!-- Résultat de succès -->
+      <div v-if="insertion.etape.value === 'resultat' && insertion.resultat.value" class="text-center py-2">
+        <p class="text-3xl mb-2">✅</p>
+        <p class="font-bold text-green-700">Nœud inséré avec succès</p>
+        <p class="text-sm text-gray-600 mt-2">{{ insertion.resultat.value.message }}</p>
+        <p class="text-xs text-gray-500 mt-1">
+          Le câble a été automatiquement scindé en <b>_A</b> et <b>_B</b>.
+        </p>
+      </div>
+
+      <!-- Formulaire -->
+      <template v-else>
+        <div class="bg-gray-50 rounded-lg p-2 text-xs border border-gray-200 space-y-1">
+          <div class="flex justify-between">
+            <span class="text-gray-500">Câble :</span>
+            <span class="font-medium">{{ insertion.cableCible.value?.nom }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Lat :</span>
+            <span class="font-mono">{{ insertion.pointChoisi.value?.lat.toFixed(6) }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Lng :</span>
+            <span class="font-mono">{{ insertion.pointChoisi.value?.lng.toFixed(6) }}</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Nom du nœud *</label>
+          <input v-model="insertion.formulaire.nom_noeud" type="text"
+                 placeholder="Ex: MANCHON_MBA_05"
+                 class="w-full text-sm p-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Type de nœud</label>
+          <select v-model="insertion.formulaire.type_noeud"
+                  class="w-full text-sm p-1.5 border border-gray-300 rounded outline-none">
+            <option value="MANCHON_ENTERRE">🔽 Manchon enterré</option>
+            <option value="MANCHON_AERIEN">🔼 Manchon aérien</option>
+            <option value="MANCHON">🔶 Chambre + Manchon (BPEO)</option>
+            <option value="CHAMBRE">⬛ Chambre de tirage (sans manchon)</option>
+            <option value="POTEAU">🪵 Poteau</option>
+          </select>
+        </div>
+
+        <label v-if="['MANCHON', 'CHAMBRE'].includes(insertion.formulaire.type_noeud)"
+               class="flex items-center gap-2 cursor-pointer text-xs">
+          <input type="checkbox" v-model="insertion.formulaire.creer_boitier">
+          <span>Créer un boîtier (manchon) automatiquement</span>
+        </label>
+
+        <div v-if="insertion.erreur.value"
+             class="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-700">
+          ⚠️ {{ insertion.erreur.value }}
+        </div>
+
+        <div v-if="insertion.etape.value === 'envoi'" class="text-center py-2">
+          <div class="animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mx-auto"></div>
+          <p class="text-xs text-gray-500 mt-2">Découpe en cours...</p>
+        </div>
+      </template>
+    </div>
+
+    <div class="p-3 border-t border-gray-200 bg-gray-50 flex gap-2 justify-end">
+      <button v-if="insertion.etape.value !== 'resultat'"
+              @click="insertion.annuler"
+              :disabled="insertion.etape.value === 'envoi'"
+              class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50">
+        Annuler
+      </button>
+      <button v-if="insertion.etape.value === 'formulaire'"
+              @click="insertion.soumettre"
+              class="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 rounded hover:bg-indigo-700">
+        ⚡ Sectionner et insérer
+      </button>
+      <button v-if="insertion.etape.value === 'resultat'"
+              @click="() => { insertion.fermerResultat(); chargerInfrastructure(); }"
+              class="px-3 py-1.5 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-700">
         Fermer
       </button>
     </div>
@@ -583,8 +716,8 @@ onUnmounted(() => { map.value?.remove() })
         @inspecter-cable="onInspecterCable"
         @voir-soudures="onVoirSoudures"
         @voir-soudures-noeud="onVoirSouduresNoeud"
-        @installer-manchon="onInstallerManchon"
-        @ajouter-manchon="onAjouterManchon"
+        @installer-manchon="onInstallerOuAjouterManchon"
+        @ajouter-manchon="onInstallerOuAjouterManchon"
         @modifier-noeud="(id) => noeuds.ouvrirEditionNoeud(id)"
         @supprimer-noeud="(id, nom) => noeuds.supprimerNoeud(id, nom, chargerInfrastructure)"
         @supprimer-manchon="(id, nom) => noeuds.supprimerManchon(id, nom, chargerInfrastructure)"
@@ -932,4 +1065,8 @@ onUnmounted(() => { map.value?.remove() })
   transition: background 0.15s;
 }
 .noeud-popup-btn:hover { background: #475569; }
+
+.leaflet-container.mode-insertion {
+  cursor: crosshair !important;
+}
 </style>
