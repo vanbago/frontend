@@ -14,6 +14,7 @@ export interface EtapeTrace {
   nom?: string; brin?: string; longueur?: string; source_longueur?: string
   soudure_id?: string; lieu?: string; statut?: string; statut_label?: string
   observation?: string; fibre_a?: FibreLabel | null; fibre_b?: FibreLabel | null
+  est_swap?: boolean
   message?: string; noeud_terminal?: NoeudTrace | null; cumul_db?: number | string
 }
 export interface ResultatTrace {
@@ -43,11 +44,10 @@ export function useTracage() {
   }
 
   const tracerBrin = async (fibre: FibreCliquee) => {
-    // Règle métier : traçable si soudée OU brassée à l'ODF (UTILISE). Sinon refus.
-    const estSoudee = !!fibre.soudure_id
-    const estALodf = !estSoudee && fibre.etat === 'UTILISE'
-    if (!estSoudee && !estALodf) {
-      alert("Cette fibre n'est pas soudée. Soudez-la d'abord pour pouvoir tracer son chemin.")
+    // Garde-fou TECHNIQUE (pas métier) : sans id, l'URL serait /fibres/undefined/
+    if (!fibre?.fibre_id) {
+      erreurTrace.value = "Brin invalide : identifiant de fibre manquant."
+      afficherTrace.value = true
       return
     }
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { OdfDetail, PortOdf } from '../../types/map'
+import type { OdfDetail, PortOdf, FibrePort } from '../../types/map'
 import type { NomFenetre } from '../../composables/useDrag'
 
 const props = defineProps<{
@@ -18,6 +18,7 @@ const emit = defineEmits<{
   actualiser:     []
   fermer:         []
   startDrag:      [event: MouseEvent, fenetre: NomFenetre]
+  tracerFibre:    [fibre: FibrePort]
 }>()
 
 // ── Mode redimensionnement ───────────────────────────
@@ -216,6 +217,28 @@ const couleurPort = (port: PortOdf) => {
             <span v-if="!portSourceMouvement">Clic port occupé → sélectionner · Clic port vide → placer</span>
             <span v-else class="text-amber-400">Clic port vide → déplacer · Clic même port → annuler</span>
           </p>
+
+          <!-- Fibres brassées + traçage -->
+          <div v-if="portsTries.some(p => p.fibre_port)" class="mt-4 space-y-1">
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-2">Fibres brassées</h4>
+            <div v-for="port in portsTries.filter(p => p.fibre_port)" :key="port.id"
+                 class="flex items-center gap-2 text-xs bg-[#252c3d] border border-[#3a4257] rounded px-2 py-1">
+              <span class="text-slate-500 w-10 shrink-0 text-[10px]">
+                P{{ (port.ligne_port - 1) * odf.colonnes + port.colonne_port }}
+              </span>
+              <span class="w-2.5 h-2.5 rounded-full shrink-0"
+                    :style="{ backgroundColor: port.fibre_port!.code_couleur_hex ?? '#9ca3af' }"></span>
+              <span class="text-slate-300 flex-1 truncate">
+                F{{ port.fibre_port!.numero_fibre }}
+                <span v-if="port.fibre_port!.etiquette" class="text-slate-500"> — {{ port.fibre_port!.etiquette }}</span>
+              </span>
+              <button v-if="port.fibre_port"
+                      @click.stop="emit('tracerFibre', port.fibre_port)"
+                      class="text-[10px] px-2 py-0.5 bg-sky-700 hover:bg-sky-600 text-white rounded">
+                🔍 Tracer
+              </button>
+            </div>
+          </div>
 
         </template>
       </div>

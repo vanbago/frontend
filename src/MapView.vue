@@ -755,6 +755,7 @@ onUnmounted(() => { map.value?.remove() })
         @actualiser="() => odf.odfEnDetail.value && odf.chargerOdf(odf.odfEnDetail.value.id)"
         @fermer="odf.fermerOdf"
         @start-drag="demarrerDrag"
+        @tracer-fibre="(fp) => tracage.tracerBrin({ fibre_id: fp.id })"
       />
 
       <!-- PICKER FIBRE -->
