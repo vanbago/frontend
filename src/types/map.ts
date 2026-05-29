@@ -108,6 +108,9 @@ export interface SoudureMatrice {
 }
 
 export interface ContenuMatrice {
+  boitier_id?: string
+  boitier_nom?: string
+  noeud_id?: string | null
   cables: CableMatrice[]
   soudures: SoudureMatrice[]
   stats: {

@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { NoeudCentreInspection, CableResum } from '../../types/map'
 import { styleParType } from '../../composables/useNoeuds'
 import { formaterLongueur } from '../../composables/useCables'
 import type { NomFenetre } from '../../composables/useDrag'
 
-defineProps<{
+const props = defineProps<{
   visible: boolean
   noeud: NoeudCentreInspection | null
   chargement: boolean
@@ -23,9 +24,15 @@ const emit = defineEmits<{
   modifierNoeud: [id: string]
   supprimerNoeud: [id: string, nom: string]
   supprimerManchon: [id: string, nom: string]
+  retirerDeCable: [id: string, nom: string]
   ouvrirOdf: [odfId: string]
   creerOdf: [noeudId: string, cableId: string, cableNom: string]
 }>()
+
+const TYPES_RETIRABLES = ['MANCHON', 'MANCHON_ENTERRE', 'MANCHON_AERIEN', 'CHAMBRE', 'POTEAU']
+const estNoeudRetirable = computed(() =>
+  props.noeud ? TYPES_RETIRABLES.includes(props.noeud.type_noeud) : false
+)
 </script>
 
 <template>
@@ -273,16 +280,29 @@ const emit = defineEmits<{
       </div>
 
       <!-- Actions -->
-      <div v-if="noeud && !chargement" class="p-3 border-t border-[#2d3448] bg-[#252c3d] flex gap-2" @mousedown.stop>
-        <button @mousedown.stop @click.stop="emit('modifierNoeud', noeud.id)"
-                class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
-                       text-blue-300 bg-blue-950 border-blue-800 hover:bg-blue-900">
-          ✏️ Modifier
-        </button>
-        <button @mousedown.stop @click.stop="emit('supprimerNoeud', noeud.id, noeud.nom_code ?? noeud.id)"
-                class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
-                       text-red-400 bg-red-950 border-red-800 hover:bg-red-900">
-          🗑 Supprimer
+      <div v-if="noeud && !chargement" class="p-3 border-t border-[#2d3448] bg-[#252c3d] flex flex-col gap-2" @mousedown.stop>
+        <div class="flex gap-2">
+          <button @mousedown.stop @click.stop="emit('modifierNoeud', noeud.id)"
+                  class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
+                         text-blue-300 bg-blue-950 border-blue-800 hover:bg-blue-900">
+            ✏️ Modifier
+          </button>
+          <button @mousedown.stop @click.stop="emit('supprimerNoeud', noeud.id, noeud.nom_code ?? noeud.id)"
+                  class="flex-1 text-xs font-bold py-1.5 px-3 rounded border transition
+                         text-red-400 bg-red-950 border-red-800 hover:bg-red-900">
+            🗑 Supprimer
+          </button>
+        </div>
+        <button
+          v-if="estNoeudRetirable && noeud"
+          @click="emit('retirerDeCable', noeud.id, noeud.nom_code ?? noeud.id)"
+          class="w-full text-xs bg-amber-900 hover:bg-amber-800 text-amber-200
+                 font-bold py-1.5 px-3 rounded border border-amber-700
+                 transition-colors flex items-center justify-center gap-2"
+          title="Fusionner les 2 câbles connectés et supprimer ce nœud"
+        >
+          <span>↩️</span>
+          <span>Retirer du câble (défusionner)</span>
         </button>
       </div>
     </div>

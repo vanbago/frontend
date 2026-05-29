@@ -413,6 +413,61 @@ const fermerPopupAjouterManchon = () => {
     }
   }
 
+  const retirerDeCable = async (noeudId: string, nomNoeud: string, onSuccess: () => void) => {
+    const message =
+      `⚠️  RETIRER LE NŒUD « ${nomNoeud} » DU CÂBLE\n\n` +
+      `Cette opération va :\n` +
+      `  • Fusionner les 2 câbles connectés en un câble unifié\n` +
+      `  • Supprimer les soudures internes (CONTINU / EN_ATTENTE)\n` +
+      `  • Migrer les ports ODF et boîtiers ODF associés\n` +
+      `  • Supprimer le nœud et ses boîtiers\n\n` +
+      `Cette action est IRRÉVERSIBLE.\n\n` +
+      `Continuer ?`
+
+    if (!confirm(message)) return
+
+    try {
+      const response = await AuthService.apiCall(
+        `${BASE_URL}/api/noeuds/${noeudId}/retirer_de_cable/`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+
+      if (!response.ok) {
+        const erreurServeur = await response.json().catch(() => ({}))
+        const msg = erreurServeur.detail || erreurServeur.erreur || `Erreur ${response.status}`
+        throw new Error(msg)
+      }
+
+      const data = await response.json()
+
+      const details: string[] = []
+      details.push(`Câble unifié : ${data.nom_unifie}`)
+      details.push(`Longueur : ${(data.longueur_metres / 1000).toFixed(2)} km`)
+      details.push(`Trajet : ${data.noeud_amont_nom} → ${data.noeud_aval_nom}`)
+      if (data.soudures_supprimees > 0)
+        details.push(`Soudures internes supprimées : ${data.soudures_supprimees}`)
+      if (data.boitiers_supprimes > 0)
+        details.push(`Boîtiers supprimés : ${data.boitiers_supprimes}`)
+      if (data.ports_odf_migres > 0)
+        details.push(`Ports ODF migrés : ${data.ports_odf_migres}`)
+      if (data.odfs_migres > 0)
+        details.push(`ODF migrés : ${data.odfs_migres}`)
+
+      alert(`✅ ${data.message}\n\n${details.join('\n')}`)
+
+      fermerInspectionNoeud()
+      onSuccess()
+
+    } catch (erreur: unknown) {
+      console.error('❌ Échec retrait nœud du câble:', erreur)
+      const msg = erreur instanceof Error ? erreur.message : String(erreur)
+      alert(`Impossible de retirer le nœud :\n\n${msg}`)
+    }
+  }
+
   const sauvegarderNouveauNoeud = async (onSuccess: () => void) => {
     try {
       const lat = parseFloat(formulaireNoeud.latitude)
@@ -490,5 +545,6 @@ const fermerPopupAjouterManchon = () => {
     popupAjouterManchonVisible, noeudPourManchon,
     cablesDisponiblesPourManchon, chargementAjoutManchon,
     ouvrirPopupAjouterManchon, fermerPopupAjouterManchon, creerManchon, supprimerManchon,
+    retirerDeCable,
   }
 }

@@ -23,6 +23,8 @@ import PickerFibre from './components/map/PickerFibre.vue'
 import { DICTIONNAIRE_COULEURS } from './composables/useCables'
 import { useOdf } from './composables/useOdf'
 import { useInsertionNoeud } from './composables/useInsertionNoeud'
+import PanneauTracage from './components/map/PanneauTracage.vue'
+import { useTracage } from './composables/useTracage'
 
 
 // ===== ROUTER =====
@@ -45,7 +47,7 @@ const positionMenuAjustee = computed(() => {
   }
 })
 
-
+const tracage = useTracage()
 const insertion = useInsertionNoeud()
 const distance = useDistance()
 const cables = useCables(map, distance, contextMenu, insertion)
@@ -721,6 +723,7 @@ onUnmounted(() => { map.value?.remove() })
         @modifier-noeud="(id) => noeuds.ouvrirEditionNoeud(id)"
         @supprimer-noeud="(id, nom) => noeuds.supprimerNoeud(id, nom, chargerInfrastructure)"
         @supprimer-manchon="(id, nom) => noeuds.supprimerManchon(id, nom, chargerInfrastructure)"
+        @retirer-de-cable="(id, nom) => noeuds.retirerDeCable(id, nom, chargerInfrastructure)"
         @ouvrir-odf="onOuvrirOdf"
         @creer-odf="onCreerOdf"
       />
@@ -763,6 +766,18 @@ onUnmounted(() => { map.value?.remove() })
         @choisir="(fibreId) => odf.placerFibre(odf.portPourPlacement.value!, fibreId)"
         @close="odf.fermerPickerFibre"
         @start-drag="demarrerDrag"
+      />
+
+      <!-- PANNEAU TRAÇAGE -->
+      <PanneauTracage
+        :visible="tracage.afficherTrace.value"
+        :position="fenetres.tracage"
+        :resultat="tracage.resultatTrace.value"
+        :chargement="tracage.chargementTrace.value"
+        :erreur="tracage.erreurTrace.value"
+        @close="tracage.fermerTrace"
+        @start-drag="demarrerDrag"
+        @sauvegarder-observation="(id, obs) => tracage.sauvegarderObservation(id, obs)"
       />
 
       <!-- MATRICE DE SOUDURES -->
@@ -882,6 +897,9 @@ onUnmounted(() => { map.value?.remove() })
                           :class="fibre.soudure_statut === 'BON' ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'">
                       {{ fibre.soudure_statut }}
                     </span>
+                    <button @click.stop="tracage.tracerBrin(fibre)"
+                            class="text-sky-400 hover:text-sky-300 font-bold text-xs leading-none px-1"
+                            title="Tracer le chemin complet de ce brin">🔍</button>
                     <button v-if="fibre.soudure_id"
                             @click.stop="inspection.supprimerSoudure(fibre.soudure_id)"
                             class="text-red-400 hover:text-red-300 font-bold text-xs leading-none px-1">✕</button>

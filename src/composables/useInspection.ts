@@ -148,8 +148,57 @@ export function useInspection() {
   }
 
   const dessouderTout = async () => {
-    if (!confirm('Supprimer TOUTES les soudures de ce manchon ?')) return
-    alert('Fonctionnalité à implémenter : suppression batch')
+    const matrice = manchonEnMatrice.value
+    if (!matrice) return
+
+    const soudures = matrice.soudures ?? []
+    if (soudures.length === 0) {
+      alert('Aucune soudure à supprimer dans ce manchon.')
+      return
+    }
+
+    const pluriel = soudures.length > 1 ? 's' : ''
+    const nomManchon = manchonNomEnMatrice.value ?? 'ce manchon'
+    const message =
+      `⚠️ Supprimer ${soudures.length} soudure${pluriel} dans « ${nomManchon} » ?\n\n` +
+      `Cette action est irréversible.`
+
+    if (!confirm(message)) return
+
+    try {
+      const ids = soudures.map(s => s.id)
+
+      const response = await AuthService.apiCall(
+        `${BASE_URL}/api/soudures/supprimer_batch/`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids })
+        }
+      )
+
+      if (!response.ok) {
+        const erreur = await response.json().catch(() => ({}))
+        throw new Error(
+          erreur.detail || erreur.erreur || `Erreur ${response.status}`
+        )
+      }
+
+      const data = await response.json()
+
+      annulerSoudure()
+      rafraichirMatrice()
+
+      alert(data.message ?? `${data.supprimees} soudure(s) supprimée(s).`)
+
+    } catch (erreur: unknown) {
+      console.error('❌ Échec suppression batch des soudures:', erreur)
+      alert(
+        `Impossible de supprimer les soudures :\n${
+          erreur instanceof Error ? erreur.message : String(erreur)
+        }`
+      )
+    }
   }
 
   return {
